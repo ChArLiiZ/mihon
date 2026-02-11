@@ -302,6 +302,13 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
     }
 
     /**
+     * Scrolls down by the given [distance] in pixels. Used by auto scroll.
+     */
+    fun autoScroll(distance: Int) {
+        recycler.scrollBy(0, distance)
+    }
+
+    /**
      * Called from the containing activity when a key [event] is received. It should return true
      * if the event was handled, false otherwise.
      */

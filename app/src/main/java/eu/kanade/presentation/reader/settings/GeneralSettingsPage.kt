@@ -127,4 +127,29 @@ internal fun ColumnScope.GeneralPage(screenModel: ReaderSettingsScreenModel) {
             }
         }
     }
+
+    // Auto page turn settings
+    val autoIntervalPref = screenModel.preferences.autoPageTurnInterval()
+    val autoInterval by autoIntervalPref.collectAsState()
+
+    val autoScrollSpeedPref = screenModel.preferences.autoPageTurnScrollSpeed()
+    val autoScrollSpeed by autoScrollSpeedPref.collectAsState()
+
+    SliderItem(
+        value = autoInterval,
+        valueRange = 1..30,
+        label = stringResource(MR.strings.pref_auto_page_turn_interval),
+        valueString = stringResource(MR.strings.pref_auto_page_turn_interval_summary, autoInterval),
+        onChange = { autoIntervalPref.set(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
+
+    SliderItem(
+        value = autoScrollSpeed,
+        valueRange = 5..100,
+        label = stringResource(MR.strings.pref_auto_page_turn_scroll_speed),
+        valueString = "$autoScrollSpeed",
+        onChange = { autoScrollSpeedPref.set(it) },
+        pillColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
 }

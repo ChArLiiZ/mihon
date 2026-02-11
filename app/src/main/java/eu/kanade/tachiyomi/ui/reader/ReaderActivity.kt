@@ -140,6 +140,9 @@ class ReaderActivity : BaseActivity() {
     var isScrollingThroughPages = false
         private set
 
+    private var autoScrollHandler: eu.kanade.tachiyomi.ui.reader.viewer.AutoScrollHandler? = null
+    private var wasAutoScrollActive = false
+
     /**
      * Called when the activity is created. Initializes the presenter and configuration.
      */
@@ -244,6 +247,19 @@ class ReaderActivity : BaseActivity() {
                 }
             }
             .launchIn(lifecycleScope)
+
+        // Observe auto scroll state
+        viewModel.state
+            .map { it.isAutoScrollActive }
+            .distinctUntilChanged()
+            .onEach { active ->
+                if (active) {
+                    startAutoScroll()
+                } else {
+                    autoScrollHandler?.stop()
+                }
+            }
+            .launchIn(lifecycleScope)
     }
 
     private fun ReaderActivityBinding.setComposeOverlay(): Unit = composeOverlay.setComposeContent {
@@ -337,6 +353,8 @@ class ReaderActivity : BaseActivity() {
      */
     override fun onDestroy() {
         super.onDestroy()
+        autoScrollHandler?.stop()
+        autoScrollHandler = null
         viewModel.state.value.viewer?.destroy()
         config = null
         menuToggleToast?.cancel()
@@ -344,6 +362,11 @@ class ReaderActivity : BaseActivity() {
     }
 
     override fun onPause() {
+        // Pause auto scroll while activity is paused
+        if (viewModel.state.value.isAutoScrollActive) {
+            wasAutoScrollActive = true
+            autoScrollHandler?.stop()
+        }
         lifecycleScope.launchNonCancellable {
             viewModel.updateHistory()
         }
@@ -358,6 +381,11 @@ class ReaderActivity : BaseActivity() {
         super.onResume()
         viewModel.restartReadTimer()
         setMenuVisibility(viewModel.state.value.menuVisible)
+        // Resume auto scroll if it was active before pause
+        if (wasAutoScrollActive) {
+            wasAutoScrollActive = false
+            startAutoScroll()
+        }
     }
 
     /**
@@ -498,7 +526,35 @@ class ReaderActivity : BaseActivity() {
                 menuToggleToast = toast(if (enabled) MR.strings.on else MR.strings.off)
             },
             onClickSettings = viewModel::openSettingsDialog,
+            isAutoScrollActive = state.isAutoScrollActive,
+            onClickAutoScroll = viewModel::toggleAutoScroll,
         )
+    }
+
+    /**
+     * Starts auto scrolling based on the current viewer type.
+     */
+    private fun startAutoScroll() {
+        val viewer = viewModel.state.value.viewer ?: return
+        val handler = eu.kanade.tachiyomi.ui.reader.viewer.AutoScrollHandler(lifecycleScope)
+        autoScrollHandler = handler
+
+        when (viewer) {
+            is eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerViewer -> {
+                val interval = readerPreferences.autoPageTurnInterval().get()
+                handler.startPageMode(interval) {
+                    viewer.moveToNext()
+                }
+            }
+            is eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer -> {
+                val speed = readerPreferences.autoPageTurnScrollSpeed().get()
+                val density = resources.displayMetrics.density
+                val scrollPx = (speed * density / 10).toInt().coerceAtLeast(1)
+                handler.startScrollMode(scrollPx) { distance ->
+                    viewer.autoScroll(distance)
+                }
+            }
+        }
     }
 
     /**
