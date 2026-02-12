@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import eu.kanade.core.preference.PreferenceMutableState
 import eu.kanade.tachiyomi.ui.library.LibraryItem
 import tachiyomi.domain.library.model.LibraryManga
 import tachiyomi.domain.manga.model.MangaCover
@@ -23,7 +25,12 @@ internal fun LibraryList(
     onClickContinueReading: ((LibraryManga) -> Unit)?,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
+    getDateAddedBadge: () -> PreferenceMutableState<Boolean>,
+    getLatestChapterDateBadge: () -> PreferenceMutableState<Boolean>,
 ) {
+    val dateAddedBadge by getDateAddedBadge()
+    val latestChapterDateBadge by getLatestChapterDateBadge()
+
     FastScrollLazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding + PaddingValues(vertical = 8.dp),
@@ -60,6 +67,12 @@ internal fun LibraryList(
                         isLocal = libraryItem.isLocal,
                         sourceLanguage = libraryItem.sourceLanguage,
                     )
+                    if (dateAddedBadge) {
+                        DateAddedBadge(dateAdded = manga.dateAdded)
+                    }
+                    if (latestChapterDateBadge) {
+                        LatestChapterDateBadge(latestChapterUploadDate = libraryItem.libraryManga.latestUpload)
+                    }
                 },
                 onLongClick = { onLongClick(libraryItem.libraryManga) },
                 onClick = { onClick(libraryItem.libraryManga) },

@@ -283,6 +283,14 @@ private fun ColumnScope.DisplayPage(
         pref = screenModel.libraryPreferences.languageBadge(),
     )
     CheckboxItem(
+        label = stringResource(MR.strings.action_display_date_added),
+        pref = screenModel.libraryPreferences.dateAddedBadge(),
+    )
+    CheckboxItem(
+        label = stringResource(MR.strings.action_display_latest_chapter_date),
+        pref = screenModel.libraryPreferences.latestChapterDateBadge(),
+    )
+    CheckboxItem(
         label = stringResource(MR.strings.action_display_show_continue_reading_button),
         pref = screenModel.libraryPreferences.showContinueReadingButton(),
     )

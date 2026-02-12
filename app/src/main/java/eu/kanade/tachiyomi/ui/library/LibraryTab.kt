@@ -90,6 +90,7 @@ data object LibraryTab : Tab {
         val screenModel = rememberScreenModel { LibraryScreenModel() }
         val settingsScreenModel = rememberScreenModel { LibrarySettingsScreenModel() }
         val state by screenModel.state.collectAsState()
+        val lastUpdatedTimestamp by screenModel.getLastUpdatedTimestamp()
 
         val snackbarHostState = remember { SnackbarHostState() }
 
@@ -139,6 +140,7 @@ data object LibraryTab : Tab {
                     onSearchQueryChange = screenModel::search,
                     // For scroll overlay when no tab
                     scrollBehavior = scrollBehavior.takeIf { !state.showCategoryTabs },
+                    lastUpdated = lastUpdatedTimestamp,
                 )
             },
             bottomBar = {
@@ -214,6 +216,8 @@ data object LibraryTab : Tab {
                         getDisplayMode = { screenModel.getDisplayMode() },
                         getColumnsForOrientation = { screenModel.getColumnsForOrientation(it) },
                         getItemsForCategory = { state.getItemsForCategory(it) },
+                        getDateAddedBadge = { screenModel.getDateAddedBadge() },
+                        getLatestChapterDateBadge = { screenModel.getLatestChapterDateBadge() },
                     )
                 }
             }

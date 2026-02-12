@@ -45,6 +45,8 @@ fun LibraryContent(
     getDisplayMode: (Int) -> PreferenceMutableState<LibraryDisplayMode>,
     getColumnsForOrientation: (Boolean) -> PreferenceMutableState<Int>,
     getItemsForCategory: (Category) -> List<LibraryItem>,
+    getDateAddedBadge: () -> PreferenceMutableState<Boolean>,
+    getLatestChapterDateBadge: () -> PreferenceMutableState<Boolean>,
 ) {
     Column(
         modifier = Modifier.padding(
@@ -110,6 +112,8 @@ fun LibraryContent(
                 },
                 onLongClickManga = onToggleRangeSelection,
                 onClickContinueReading = onContinueReadingClicked,
+                getDateAddedBadge = getDateAddedBadge,
+                getLatestChapterDateBadge = getLatestChapterDateBadge,
             )
         }
 

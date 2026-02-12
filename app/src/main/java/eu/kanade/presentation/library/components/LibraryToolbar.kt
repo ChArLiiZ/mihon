@@ -1,7 +1,9 @@
 package eu.kanade.presentation.library.components
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import eu.kanade.presentation.util.relativeTimeSpanString
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FlipToBack
@@ -40,6 +42,7 @@ fun LibraryToolbar(
     searchQuery: String?,
     onSearchQueryChange: (String?) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior?,
+    lastUpdated: Long = 0,
 ) = when {
     selectedCount > 0 -> LibrarySelectionToolbar(
         selectedCount = selectedCount,
@@ -57,6 +60,7 @@ fun LibraryToolbar(
         onClickGlobalUpdate = onClickGlobalUpdate,
         onClickOpenRandomManga = onClickOpenRandomManga,
         scrollBehavior = scrollBehavior,
+        lastUpdated = lastUpdated,
     )
 }
 
@@ -70,23 +74,38 @@ private fun LibraryRegularToolbar(
     onClickRefresh: () -> Unit,
     onClickGlobalUpdate: () -> Unit,
     onClickOpenRandomManga: () -> Unit,
+    onClickOpenRandomManga: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior?,
+    lastUpdated: Long,
 ) {
     val pillAlpha = if (isSystemInDarkTheme()) 0.12f else 0.08f
     SearchToolbar(
         titleContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title.text,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, false),
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (title.numberOfManga != null) {
-                    Pill(
-                        text = "${title.numberOfManga}",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = pillAlpha),
-                        fontSize = 14.sp,
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title.text,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f, false),
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (title.numberOfManga != null) {
+                        Pill(
+                            text = "${title.numberOfManga}",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = pillAlpha),
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
+                if (lastUpdated > 0L) {
+                    Text(
+                        text = relativeTimeSpanString(lastUpdated),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

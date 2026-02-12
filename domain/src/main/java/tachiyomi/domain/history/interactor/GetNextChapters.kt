@@ -53,4 +53,16 @@ class GetNextChapters(
             nextChapters.drop(1)
         }
     }
+
+    suspend fun awaitSuggestedChapter(mangaId: Long): Chapter? {
+        val history = historyRepository.getHistoryByMangaId(mangaId)
+            .maxByOrNull { it.readAt?.time ?: 0 }
+
+        if (history == null) {
+            return await(mangaId, onlyUnread = true).firstOrNull()
+        }
+
+        return await(mangaId, history.chapterId, onlyUnread = false)
+            .firstOrNull { !it.read }
+    }
 }

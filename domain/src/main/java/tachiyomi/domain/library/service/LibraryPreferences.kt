@@ -106,6 +106,10 @@ class LibraryPreferences(
 
     fun languageBadge() = preferenceStore.getBoolean("display_language_badge", false)
 
+    fun dateAddedBadge() = preferenceStore.getBoolean("display_date_added_badge", false)
+
+    fun latestChapterDateBadge() = preferenceStore.getBoolean("display_latest_chapter_date_badge", false)
+
     fun newShowUpdatesCount() = preferenceStore.getBoolean("library_show_updates_count", true)
     fun newUpdatesCount() = preferenceStore.getInt(Preference.appStateKey("library_unseen_updates_count"), 0)
 

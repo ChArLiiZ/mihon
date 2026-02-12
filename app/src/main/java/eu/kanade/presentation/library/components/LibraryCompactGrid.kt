@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import eu.kanade.core.preference.PreferenceMutableState
 import eu.kanade.tachiyomi.ui.library.LibraryItem
 import tachiyomi.domain.library.model.LibraryManga
 import tachiyomi.domain.manga.model.MangaCover
@@ -21,7 +23,12 @@ internal fun LibraryCompactGrid(
     onClickContinueReading: ((LibraryManga) -> Unit)?,
     searchQuery: String?,
     onGlobalSearchClicked: () -> Unit,
+    getDateAddedBadge: () -> PreferenceMutableState<Boolean>,
+    getLatestChapterDateBadge: () -> PreferenceMutableState<Boolean>,
 ) {
+    val dateAddedBadge by getDateAddedBadge()
+    val latestChapterDateBadge by getLatestChapterDateBadge()
+
     LazyLibraryGrid(
         modifier = Modifier.fillMaxSize(),
         columns = columns,
@@ -47,12 +54,18 @@ internal fun LibraryCompactGrid(
                 coverBadgeStart = {
                     DownloadsBadge(count = libraryItem.downloadCount)
                     UnreadBadge(count = libraryItem.unreadCount)
+                    if (dateAddedBadge) {
+                        DateAddedBadge(dateAdded = manga.dateAdded)
+                    }
                 },
                 coverBadgeEnd = {
                     LanguageBadge(
                         isLocal = libraryItem.isLocal,
                         sourceLanguage = libraryItem.sourceLanguage,
                     )
+                    if (latestChapterDateBadge) {
+                        LatestChapterDateBadge(latestChapterUploadDate = libraryItem.libraryManga.latestUpload)
+                    }
                 },
                 onLongClick = { onLongClick(libraryItem.libraryManga) },
                 onClick = { onClick(libraryItem.libraryManga) },

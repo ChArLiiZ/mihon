@@ -47,6 +47,20 @@ internal fun LanguageBadge(
     }
 }
 
+@Composable
+internal fun DateAddedBadge(dateAdded: Long) {
+    Badge(text = eu.kanade.presentation.util.relativeTimeSpanString(dateAdded))
+}
+
+@Composable
+internal fun LatestChapterDateBadge(latestChapterUploadDate: Long) {
+    Badge(
+        text = eu.kanade.presentation.util.relativeTimeSpanString(latestChapterUploadDate),
+        color = MaterialTheme.colorScheme.tertiary,
+        textColor = MaterialTheme.colorScheme.onTertiary,
+    )
+}
+
 @PreviewLightDark
 @Composable
 private fun BadgePreview() {

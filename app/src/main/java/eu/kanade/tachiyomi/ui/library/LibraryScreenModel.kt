@@ -448,7 +448,7 @@ class LibraryScreenModel(
     }
 
     suspend fun getNextUnreadChapter(manga: Manga): Chapter? {
-        return getChaptersByMangaId.await(manga.id, applyScanlatorFilter = true).getNextUnread(manga, downloadManager)
+        return getNextChapters.awaitSuggestedChapter(manga.id)
     }
 
     /**
@@ -571,6 +571,18 @@ class LibraryScreenModel(
     fun getColumnsForOrientation(isLandscape: Boolean): PreferenceMutableState<Int> {
         return (if (isLandscape) libraryPreferences.landscapeColumns() else libraryPreferences.portraitColumns())
             .asState(screenModelScope)
+    }
+
+    fun getDateAddedBadge(): PreferenceMutableState<Boolean> {
+        return libraryPreferences.dateAddedBadge().asState(screenModelScope)
+    }
+
+    fun getLatestChapterDateBadge(): PreferenceMutableState<Boolean> {
+        return libraryPreferences.latestChapterDateBadge().asState(screenModelScope)
+    }
+
+    fun getLastUpdatedTimestamp(): PreferenceMutableState<Long> {
+        return libraryPreferences.lastUpdatedTimestamp().asState(screenModelScope)
     }
 
     fun getRandomLibraryItemForCurrentCategory(): LibraryItem? {
