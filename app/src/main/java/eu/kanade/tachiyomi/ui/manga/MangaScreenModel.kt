@@ -1,6 +1,8 @@
 package eu.kanade.tachiyomi.ui.manga
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -58,8 +60,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import logcat.LogPriority
-import okio.buffer
-import okio.sink
 import java.io.File
 import mihon.domain.chapter.interactor.FilterChaptersForDownload
 import tachiyomi.core.common.i18n.stringResource
@@ -376,15 +376,46 @@ class MangaScreenModel(
                 page.imageUrl = httpSource.getImageUrl(page)
             }
 
-            // Download through source's HTTP client (with proper headers/interceptors)
+            // Download through source's HTTP client, then save as compressed thumbnail
             val cachedFile = File(cacheDir, "page_${page.index}.jpg")
             if (!cachedFile.exists() && httpSource != null) {
                 try {
                     val response = httpSource.getImage(page)
-                    response.body.source().use { source ->
-                        cachedFile.sink().buffer().use { sink ->
-                            sink.writeAll(source)
+                    val fullBytes = response.body.bytes()
+
+                    // Decode with downsampling to create a small thumbnail
+                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeByteArray(fullBytes, 0, fullBytes.size, options)
+
+                    // Calculate sample size: target max dimension ~480px for preview thumbnails
+                    val targetSize = 480
+                    val maxDim = maxOf(options.outWidth, options.outHeight)
+                    var sampleSize = 1
+                    while (maxDim / sampleSize > targetSize * 2) {
+                        sampleSize *= 2
+                    }
+
+                    val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                    val bitmap = BitmapFactory.decodeByteArray(fullBytes, 0, fullBytes.size, decodeOptions)
+
+                    if (bitmap != null) {
+                        // Scale down further if still too large
+                        val scaledBitmap = if (maxOf(bitmap.width, bitmap.height) > targetSize) {
+                            val scale = targetSize.toFloat() / maxOf(bitmap.width, bitmap.height)
+                            val newW = (bitmap.width * scale).toInt()
+                            val newH = (bitmap.height * scale).toInt()
+                            Bitmap.createScaledBitmap(bitmap, newW, newH, true).also {
+                                if (it !== bitmap) bitmap.recycle()
+                            }
+                        } else {
+                            bitmap
                         }
+
+                        // Save as compressed JPEG (quality 75)
+                        cachedFile.outputStream().use { out ->
+                            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 75, out)
+                        }
+                        scaledBitmap.recycle()
                     }
                 } catch (e: Throwable) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
