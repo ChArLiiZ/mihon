@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import eu.kanade.tachiyomi.ui.manga.PagePreview
+import java.io.File
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -141,8 +142,12 @@ fun FirstChapterPreviewGallery(
                                 modifier = Modifier.width(itemWidth),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
+                                val imageModel = page.imageUrl.let { url ->
+                                    val file = File(url)
+                                    if (file.exists()) file else url
+                                }
                                 AsyncImage(
-                                    model = page.imageUrl,
+                                    model = imageModel,
                                     contentDescription = stringResource(
                                         MR.strings.chapter_progress,
                                         page.pageIndex + 1,

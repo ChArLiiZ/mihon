@@ -58,6 +58,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import okio.buffer
+import okio.sink
+import java.io.File
 import mihon.domain.chapter.interactor.FilterChaptersForDownload
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
@@ -262,6 +265,12 @@ class MangaScreenModel(
     // Cached page list for first chapter preview (not in state to avoid serialization issues)
     private var firstChapterAllPages: List<Page> = emptyList()
 
+    override fun onDispose() {
+        super.onDispose()
+        // Clean up preview image cache
+        File(context.cacheDir, "first_chapter_preview").deleteRecursively()
+    }
+
     private suspend fun fetchLatestChapterPageCount() {
         val state = successState ?: return
         try {
@@ -303,7 +312,7 @@ class MangaScreenModel(
                 val pages = state.source.getPageList(firstChapter.toSChapter())
                 firstChapterAllPages = pages
 
-                val resolvedPages = resolvePageImageUrls(state.source, pages.take(10))
+                val resolvedPages = resolvePageImageUrls(state.source, pages.take(10), firstChapter.id)
 
                 updateSuccessState {
                     it.copy(
@@ -337,7 +346,8 @@ class MangaScreenModel(
             try {
                 val currentCount = state.firstChapterVisibleCount
                 val nextPages = firstChapterAllPages.drop(currentCount).take(10)
-                val resolvedPages = resolvePageImageUrls(state.source, nextPages)
+                val chapterId = state.firstChapterId ?: 0L
+                val resolvedPages = resolvePageImageUrls(state.source, nextPages, chapterId)
 
                 updateSuccessState {
                     it.copy(
@@ -355,15 +365,40 @@ class MangaScreenModel(
         }
     }
 
-    private suspend fun resolvePageImageUrls(source: Source, pages: List<Page>): List<PagePreview> {
+    private suspend fun resolvePageImageUrls(source: Source, pages: List<Page>, chapterId: Long = 0L): List<PagePreview> {
         val httpSource = source as? HttpSource
+        val cacheDir = File(context.cacheDir, "first_chapter_preview/$chapterId")
+        if (!cacheDir.exists()) cacheDir.mkdirs()
+
         return pages.map { page ->
-            val imageUrl = if (page.imageUrl.isNullOrEmpty() && httpSource != null) {
-                httpSource.getImageUrl(page)
+            // Resolve imageUrl if needed
+            if (page.imageUrl.isNullOrEmpty() && httpSource != null) {
+                page.imageUrl = httpSource.getImageUrl(page)
+            }
+
+            // Download through source's HTTP client (with proper headers/interceptors)
+            val cachedFile = File(cacheDir, "page_${page.index}.jpg")
+            if (!cachedFile.exists() && httpSource != null) {
+                try {
+                    val response = httpSource.getImage(page)
+                    response.body.source().use { source ->
+                        cachedFile.sink().buffer().use { sink ->
+                            sink.writeAll(source)
+                        }
+                    }
+                } catch (e: Throwable) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    logcat(LogPriority.ERROR, e) { "Failed to download preview page ${page.index}" }
+                }
+            }
+
+            val imageData = if (cachedFile.exists()) {
+                cachedFile.absolutePath
             } else {
+                // Fallback to direct URL if download failed
                 page.imageUrl ?: ""
             }
-            PagePreview(pageIndex = page.index, imageUrl = imageUrl)
+            PagePreview(pageIndex = page.index, imageUrl = imageData)
         }
     }
 
