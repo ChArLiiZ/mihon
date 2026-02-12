@@ -74,16 +74,13 @@ private fun LibraryRegularToolbar(
     onClickRefresh: () -> Unit,
     onClickGlobalUpdate: () -> Unit,
     onClickOpenRandomManga: () -> Unit,
-    onClickOpenRandomManga: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior?,
     lastUpdated: Long,
 ) {
     val pillAlpha = if (isSystemInDarkTheme()) 0.12f else 0.08f
     SearchToolbar(
         titleContent = {
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
+            Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = title.text,
