@@ -133,6 +133,12 @@ class ReaderViewModel @JvmOverloads constructor(
             field = value
         }
 
+    private var forceResume = savedState.get<Boolean>("force_resume") ?: false
+        set(value) {
+            savedState["force_resume"] = value
+            field = value
+        }
+
     /**
      * The chapter loader for the loaded manga. It'll be null until [manga] is set.
      */
@@ -237,8 +243,12 @@ class ReaderViewModel @JvmOverloads constructor(
                 if (chapterPageIndex >= 0) {
                     // Restore from SavedState
                     currentChapter.requestedPage = chapterPageIndex
-                } else if (!currentChapter.chapter.read) {
+                } else if (!currentChapter.chapter.read || forceResume) {
                     currentChapter.requestedPage = currentChapter.chapter.last_page_read
+                    // Reset forceResume after first use so it doesn't affect subsequent chapter changes
+                    if (forceResume) {
+                        forceResume = false
+                    }
                 }
                 chapterId = currentChapter.chapter.id!!
             }

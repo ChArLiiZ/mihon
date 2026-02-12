@@ -62,7 +62,8 @@ class GetNextChapters(
             return await(mangaId, onlyUnread = true).firstOrNull()
         }
 
-        return await(mangaId, history.chapterId, onlyUnread = false)
-            .firstOrNull { !it.read }
+        val chapters = await(mangaId, onlyUnread = false)
+        return chapters.find { it.id == history.chapterId }
+            ?: await(mangaId, onlyUnread = true).firstOrNull()
     }
 }

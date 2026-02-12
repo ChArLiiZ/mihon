@@ -152,7 +152,7 @@ class MangaScreen(
             onTagSearch = { scope.launch { performGenreSearch(navigator, it, screenModel.source!!) } },
             onFilterButtonClicked = screenModel::showSettingsDialog,
             onRefresh = screenModel::fetchAllFromSource,
-            onContinueReading = { continueReading(context, screenModel.getNextUnreadChapter()) },
+            onContinueReading = { scope.launch { continueReading(context, screenModel.getSuggestedChapter()) } },
             onSearch = { query, global -> scope.launch { performSearch(navigator, query, global) } },
             onCoverClicked = screenModel::showCoverDialog,
             onShareClicked = { shareManga(context, screenModel.manga, screenModel.source) }.takeIf { isHttpSource },
@@ -291,7 +291,9 @@ class MangaScreen(
     }
 
     private fun continueReading(context: Context, unreadChapter: Chapter?) {
-        if (unreadChapter != null) openChapter(context, unreadChapter)
+        if (unreadChapter != null) {
+            context.startActivity(ReaderActivity.newIntent(context, unreadChapter.mangaId, unreadChapter.id, forceResume = true))
+        }
     }
 
     private fun openChapter(context: Context, chapter: Chapter) {

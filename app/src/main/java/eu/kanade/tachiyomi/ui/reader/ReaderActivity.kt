@@ -107,10 +107,11 @@ import java.io.ByteArrayOutputStream
 class ReaderActivity : BaseActivity() {
 
     companion object {
-        fun newIntent(context: Context, mangaId: Long?, chapterId: Long?): Intent {
+        fun newIntent(context: Context, mangaId: Long?, chapterId: Long?, forceResume: Boolean = false): Intent {
             return Intent(context, ReaderActivity::class.java).apply {
                 putExtra("manga", mangaId)
                 putExtra("chapter", chapterId)
+                putExtra("force_resume", forceResume)
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
         }

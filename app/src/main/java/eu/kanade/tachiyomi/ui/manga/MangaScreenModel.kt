@@ -41,6 +41,7 @@ import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
+import tachiyomi.domain.history.interactor.GetNextChapters
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -117,6 +118,7 @@ class MangaScreenModel(
     private val getCategories: GetCategories = Injekt.get(),
     private val getTracks: GetTracks = Injekt.get(),
     private val addTracks: AddTracks = Injekt.get(),
+    private val getNextChapters: GetNextChapters = Injekt.get(),
     private val setMangaCategories: SetMangaCategories = Injekt.get(),
     private val mangaRepository: MangaRepository = Injekt.get(),
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get(),
@@ -635,6 +637,14 @@ class MangaScreenModel(
     fun getNextUnreadChapter(): Chapter? {
         val successState = successState ?: return null
         return successState.chapters.getNextUnread(successState.manga)
+    }
+
+    /**
+     * Returns the suggested chapter for "continue reading" based on reading history.
+     * Falls back to the next unread chapter if there's no history.
+     */
+    suspend fun getSuggestedChapter(): Chapter? {
+        return getNextChapters.awaitSuggestedChapter(mangaId)
     }
 
     private fun getUnreadChapters(): List<Chapter> {
