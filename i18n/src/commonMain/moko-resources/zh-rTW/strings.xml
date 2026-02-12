@@ -238,6 +238,11 @@
     <string name="confirm_delete_chapters">確定要刪除所選的章節嗎？</string>
     <string name="error_category_exists">已有名稱相同的類別！</string>
     <string name="chapter_progress">第 %1$d 頁</string>
+    <string name="chapter_progress_with_total">第 %1$d 頁 / 共 %2$d 頁</string>
+    <string name="chapter_total_pages">共 %1$d 頁</string>
+    <string name="first_chapter_preview">第一話預覽</string>
+    <string name="first_chapter_preview_error">預覽載入失敗</string>
+    <string name="load_more">載入更多</string>
     <string name="no_next_chapter">找不到下一章</string>
     <string name="transition_finished">已閱畢：</string>
     <string name="transition_next">接下來：</string>

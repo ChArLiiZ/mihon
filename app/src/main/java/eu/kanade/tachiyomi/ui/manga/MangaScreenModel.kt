@@ -38,6 +38,8 @@ import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.source.Source
+import eu.kanade.tachiyomi.source.model.Page
+import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
@@ -72,6 +74,7 @@ import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.chapter.interactor.SetMangaDefaultChapterFlags
 import tachiyomi.domain.chapter.interactor.UpdateChapter
 import tachiyomi.domain.chapter.model.Chapter
+import eu.kanade.domain.chapter.model.toSChapter
 import tachiyomi.domain.chapter.model.ChapterUpdate
 import tachiyomi.domain.chapter.model.NoChaptersException
 import tachiyomi.domain.chapter.service.calculateChapterGap
@@ -250,6 +253,117 @@ class MangaScreenModel(
 
             // Initial loading finished
             updateSuccessState { it.copy(isRefreshingData = false) }
+
+            // Fetch latest chapter total pages
+            fetchLatestChapterPageCount()
+        }
+    }
+
+    // Cached page list for first chapter preview (not in state to avoid serialization issues)
+    private var firstChapterAllPages: List<Page> = emptyList()
+
+    private suspend fun fetchLatestChapterPageCount() {
+        val state = successState ?: return
+        try {
+            val latestChapter = state.chapters
+                .map { it.chapter }
+                .minByOrNull { it.sourceOrder }
+                ?: return
+
+            val pages = withIOContext {
+                state.source.getPageList(latestChapter.toSChapter())
+            }
+            updateSuccessState {
+                it.copy(
+                    latestChapterId = latestChapter.id,
+                    latestChapterTotalPages = pages.size,
+                )
+            }
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            logcat(LogPriority.ERROR, e) { "Failed to fetch latest chapter page count" }
+        }
+    }
+
+    fun fetchFirstChapterPreview() {
+        val state = successState ?: return
+        if (state.firstChapterPages.isNotEmpty() || state.isLoadingPreview) return
+
+        screenModelScope.launchIO {
+            updateSuccessState { it.copy(isLoadingPreview = true, previewError = null) }
+            try {
+                val firstChapter = state.chapters
+                    .map { it.chapter }
+                    .maxByOrNull { it.sourceOrder }
+                    ?: run {
+                        updateSuccessState { it.copy(isLoadingPreview = false) }
+                        return@launchIO
+                    }
+
+                val pages = state.source.getPageList(firstChapter.toSChapter())
+                firstChapterAllPages = pages
+
+                val resolvedPages = resolvePageImageUrls(state.source, pages.take(10))
+
+                updateSuccessState {
+                    it.copy(
+                        firstChapterId = firstChapter.id,
+                        firstChapterPages = resolvedPages,
+                        firstChapterTotalPageCount = pages.size,
+                        firstChapterVisibleCount = resolvedPages.size.coerceAtMost(pages.size),
+                        isLoadingPreview = false,
+                    )
+                }
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                logcat(LogPriority.ERROR, e) { "Failed to fetch first chapter preview" }
+                updateSuccessState {
+                    it.copy(
+                        isLoadingPreview = false,
+                        previewError = e.message ?: "Unknown error",
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadMorePreviewPages() {
+        val state = successState ?: return
+        if (state.isLoadingPreview) return
+        if (state.firstChapterVisibleCount >= state.firstChapterTotalPageCount) return
+
+        screenModelScope.launchIO {
+            updateSuccessState { it.copy(isLoadingPreview = true) }
+            try {
+                val currentCount = state.firstChapterVisibleCount
+                val nextPages = firstChapterAllPages.drop(currentCount).take(10)
+                val resolvedPages = resolvePageImageUrls(state.source, nextPages)
+
+                updateSuccessState {
+                    it.copy(
+                        firstChapterPages = it.firstChapterPages + resolvedPages,
+                        firstChapterVisibleCount = (currentCount + resolvedPages.size)
+                            .coerceAtMost(it.firstChapterTotalPageCount),
+                        isLoadingPreview = false,
+                    )
+                }
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                logcat(LogPriority.ERROR, e) { "Failed to load more preview pages" }
+                updateSuccessState { it.copy(isLoadingPreview = false) }
+            }
+        }
+    }
+
+    private suspend fun resolvePageImageUrls(source: Source, pages: List<Page>): List<PagePreview> {
+        val httpSource = source as? HttpSource
+        return pages.map { page ->
+            val imageUrl = if (page.imageUrl.isNullOrEmpty() && httpSource != null) {
+                httpSource.getImageUrl(page)
+            } else {
+                page.imageUrl ?: ""
+            }
+            PagePreview(pageIndex = page.index, imageUrl = imageUrl)
         }
     }
 
@@ -1144,6 +1258,16 @@ class MangaScreenModel(
             val dialog: Dialog? = null,
             val hasPromptedToAddBefore: Boolean = false,
             val hideMissingChapters: Boolean = false,
+            // Feature 1: Latest chapter total pages
+            val latestChapterId: Long? = null,
+            val latestChapterTotalPages: Int? = null,
+            // Feature 2: First chapter preview gallery
+            val firstChapterId: Long? = null,
+            val firstChapterPages: List<PagePreview> = emptyList(),
+            val firstChapterTotalPageCount: Int = 0,
+            val firstChapterVisibleCount: Int = 0,
+            val isLoadingPreview: Boolean = false,
+            val previewError: String? = null,
         ) : State {
             val processedChapters by lazy {
                 chapters.applyFilters(manga).toList()
@@ -1228,3 +1352,9 @@ sealed class ChapterList {
         val isDownloaded = downloadState == Download.State.DOWNLOADED
     }
 }
+
+@Immutable
+data class PagePreview(
+    val pageIndex: Int,
+    val imageUrl: String,
+)

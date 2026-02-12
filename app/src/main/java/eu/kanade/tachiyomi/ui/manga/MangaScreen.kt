@@ -173,6 +173,15 @@ class MangaScreen(
             onChapterSelected = screenModel::toggleSelection,
             onAllChapterSelected = screenModel::toggleAllSelection,
             onInvertSelection = screenModel::invertSelection,
+            onExpandFirstChapterPreview = screenModel::fetchFirstChapterPreview,
+            onLoadMorePreviewPages = screenModel::loadMorePreviewPages,
+            onPreviewPageClick = { chapterId, pageIndex ->
+                if (chapterId != null) {
+                    context.startActivity(
+                        ReaderActivity.newIntent(context, successState.manga.id, chapterId, page = pageIndex),
+                    )
+                }
+            },
         )
 
         var showScanlatorsDialog by remember { mutableStateOf(false) }

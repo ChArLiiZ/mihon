@@ -139,6 +139,14 @@ class ReaderViewModel @JvmOverloads constructor(
             field = value
         }
 
+    init {
+        // If a specific page was requested via intent, set it as the initial page
+        val requestedPage = savedState.get<Int>("page") ?: -1
+        if (requestedPage >= 0 && chapterPageIndex < 0) {
+            chapterPageIndex = requestedPage
+        }
+    }
+
     /**
      * The chapter loader for the loaded manga. It'll be null until [manga] is set.
      */

@@ -838,6 +838,11 @@
     <string name="cover_updated">Cover updated</string>
     <string name="share_page_info">%1$s: %2$s, page %3$d</string>
     <string name="chapter_progress">Page: %1$d</string>
+    <string name="chapter_progress_with_total">Page: %1$d / %2$d</string>
+    <string name="chapter_total_pages">%1$d pages</string>
+    <string name="first_chapter_preview">First chapter preview</string>
+    <string name="first_chapter_preview_error">Failed to load preview</string>
+    <string name="load_more">Load more</string>
     <string name="no_next_chapter">Next chapter not found</string>
     <string name="decode_image_error">The image couldn\'t be loaded</string>
     <string name="confirm_set_image_as_cover">Use this image as cover art?</string>

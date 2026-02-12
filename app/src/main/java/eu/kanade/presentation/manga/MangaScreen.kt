@@ -50,6 +50,7 @@ import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
+import eu.kanade.presentation.manga.components.FirstChapterPreviewGallery
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
 import eu.kanade.presentation.manga.components.MangaChapterListItem
@@ -125,6 +126,11 @@ fun MangaScreen(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+
+    // For first chapter preview
+    onExpandFirstChapterPreview: () -> Unit,
+    onLoadMorePreviewPages: () -> Unit,
+    onPreviewPageClick: (chapterId: Long?, pageIndex: Int) -> Unit,
 ) {
     val context = LocalContext.current
     val onCopyTagToClipboard: (tag: String) -> Unit = {
@@ -168,6 +174,9 @@ fun MangaScreen(
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
             onInvertSelection = onInvertSelection,
+            onExpandFirstChapterPreview = onExpandFirstChapterPreview,
+            onLoadMorePreviewPages = onLoadMorePreviewPages,
+            onPreviewPageClick = onPreviewPageClick,
         )
     } else {
         MangaScreenLargeImpl(
@@ -204,6 +213,9 @@ fun MangaScreen(
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
             onInvertSelection = onInvertSelection,
+            onExpandFirstChapterPreview = onExpandFirstChapterPreview,
+            onLoadMorePreviewPages = onLoadMorePreviewPages,
+            onPreviewPageClick = onPreviewPageClick,
         )
     }
 }
@@ -256,6 +268,11 @@ private fun MangaScreenSmallImpl(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+
+    // For first chapter preview
+    onExpandFirstChapterPreview: () -> Unit,
+    onLoadMorePreviewPages: () -> Unit,
+    onPreviewPageClick: (chapterId: Long?, pageIndex: Int) -> Unit,
 ) {
     val chapterListState = rememberLazyListState()
 
@@ -419,6 +436,24 @@ private fun MangaScreenSmallImpl(
                     }
 
                     item(
+                        key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
+                        contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
+                    ) {
+                        FirstChapterPreviewGallery(
+                            pages = state.firstChapterPages,
+                            totalPageCount = state.firstChapterTotalPageCount,
+                            visibleCount = state.firstChapterVisibleCount,
+                            isLoading = state.isLoadingPreview,
+                            error = state.previewError,
+                            onExpand = onExpandFirstChapterPreview,
+                            onLoadMore = onLoadMorePreviewPages,
+                            onPageClick = { pageIndex ->
+                                onPreviewPageClick(state.firstChapterId, pageIndex)
+                            },
+                        )
+                    }
+
+                    item(
                         key = MangaScreenItem.CHAPTER_HEADER,
                         contentType = MangaScreenItem.CHAPTER_HEADER,
                     ) {
@@ -439,6 +474,8 @@ private fun MangaScreenSmallImpl(
                         isAnyChapterSelected = chapters.fastAny { it.selected },
                         chapterSwipeStartAction = chapterSwipeStartAction,
                         chapterSwipeEndAction = chapterSwipeEndAction,
+                        latestChapterId = state.latestChapterId,
+                        latestChapterTotalPages = state.latestChapterTotalPages,
                         onChapterClicked = onChapterClicked,
                         onDownloadChapter = onDownloadChapter,
                         onChapterSelected = onChapterSelected,
@@ -498,6 +535,11 @@ fun MangaScreenLargeImpl(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+
+    // For first chapter preview
+    onExpandFirstChapterPreview: () -> Unit,
+    onLoadMorePreviewPages: () -> Unit,
+    onPreviewPageClick: (chapterId: Long?, pageIndex: Int) -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -656,6 +698,24 @@ fun MangaScreenLargeImpl(
                             ),
                         ) {
                             item(
+                                key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
+                                contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
+                            ) {
+                                FirstChapterPreviewGallery(
+                                    pages = state.firstChapterPages,
+                                    totalPageCount = state.firstChapterTotalPageCount,
+                                    visibleCount = state.firstChapterVisibleCount,
+                                    isLoading = state.isLoadingPreview,
+                                    error = state.previewError,
+                                    onExpand = onExpandFirstChapterPreview,
+                                    onLoadMore = onLoadMorePreviewPages,
+                                    onPageClick = { pageIndex ->
+                                        onPreviewPageClick(state.firstChapterId, pageIndex)
+                                    },
+                                )
+                            }
+
+                            item(
                                 key = MangaScreenItem.CHAPTER_HEADER,
                                 contentType = MangaScreenItem.CHAPTER_HEADER,
                             ) {
@@ -676,6 +736,8 @@ fun MangaScreenLargeImpl(
                                 isAnyChapterSelected = chapters.fastAny { it.selected },
                                 chapterSwipeStartAction = chapterSwipeStartAction,
                                 chapterSwipeEndAction = chapterSwipeEndAction,
+                                latestChapterId = state.latestChapterId,
+                                latestChapterTotalPages = state.latestChapterTotalPages,
                                 onChapterClicked = onChapterClicked,
                                 onDownloadChapter = onDownloadChapter,
                                 onChapterSelected = onChapterSelected,
@@ -737,6 +799,8 @@ private fun LazyListScope.sharedChapterItems(
     isAnyChapterSelected: Boolean,
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
     chapterSwipeEndAction: LibraryPreferences.ChapterSwipeAction,
+    latestChapterId: Long?,
+    latestChapterTotalPages: Int?,
     onChapterClicked: (Chapter) -> Unit,
     onDownloadChapter: ((List<ChapterList.Item>, ChapterDownloadAction) -> Unit)?,
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
@@ -769,14 +833,23 @@ private fun LazyListScope.sharedChapterItems(
                         item.chapter.name
                     },
                     date = relativeDateText(item.chapter.dateUpload),
-                    readProgress = item.chapter.lastPageRead
-                        .takeIf { !item.chapter.read && it > 0L }
-                        ?.let {
+                    readProgress = when {
+                        // Latest chapter with read progress and total pages
+                        item.chapter.id == latestChapterId && latestChapterTotalPages != null &&
+                            !item.chapter.read && item.chapter.lastPageRead > 0L ->
                             stringResource(
-                                MR.strings.chapter_progress,
-                                it + 1,
+                                MR.strings.chapter_progress_with_total,
+                                item.chapter.lastPageRead + 1,
+                                latestChapterTotalPages,
                             )
-                        },
+                        // Latest chapter with total pages but no read progress
+                        item.chapter.id == latestChapterId && latestChapterTotalPages != null ->
+                            stringResource(MR.strings.chapter_total_pages, latestChapterTotalPages)
+                        // Other chapters: keep original behavior
+                        !item.chapter.read && item.chapter.lastPageRead > 0L ->
+                            stringResource(MR.strings.chapter_progress, item.chapter.lastPageRead + 1)
+                        else -> null
+                    },
                     scanlator = item.chapter.scanlator.takeIf { !it.isNullOrBlank() },
                     read = item.chapter.read,
                     bookmark = item.chapter.bookmark,

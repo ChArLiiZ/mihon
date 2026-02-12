@@ -17,6 +17,7 @@ enum class MangaScreenItem {
     INFO_BOX,
     ACTION_ROW,
     DESCRIPTION_WITH_TAG,
+    FIRST_CHAPTER_PREVIEW,
     CHAPTER_HEADER,
     CHAPTER,
 }
