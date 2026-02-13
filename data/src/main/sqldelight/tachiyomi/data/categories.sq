@@ -2,7 +2,8 @@ CREATE TABLE categories(
     _id INTEGER NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
     sort INTEGER NOT NULL,
-    flags INTEGER NOT NULL
+    flags INTEGER NOT NULL,
+    parent_id INTEGER
 );
 
 -- Insert system category
@@ -27,7 +28,8 @@ SELECT
 _id AS id,
 name,
 sort AS `order`,
-flags
+flags,
+parent_id AS parentId
 FROM categories
 ORDER BY sort;
 
@@ -36,15 +38,38 @@ SELECT
 C._id AS id,
 C.name,
 C.sort AS `order`,
-C.flags
+C.flags,
+C.parent_id AS parentId
 FROM categories C
 JOIN mangas_categories MC
 ON C._id = MC.category_id
 WHERE MC.manga_id = :mangaId;
 
+getCategoriesByParentId:
+SELECT
+_id AS id,
+name,
+sort AS `order`,
+flags,
+parent_id AS parentId
+FROM categories
+WHERE parent_id = :parentId
+ORDER BY sort;
+
+getRootCategories:
+SELECT
+_id AS id,
+name,
+sort AS `order`,
+flags,
+parent_id AS parentId
+FROM categories
+WHERE parent_id IS NULL
+ORDER BY sort;
+
 insert:
-INSERT INTO categories(name, sort, flags)
-VALUES (:name, :order, :flags);
+INSERT INTO categories(name, sort, flags, parent_id)
+VALUES (:name, :order, :flags, :parentId);
 
 delete:
 DELETE FROM categories
@@ -54,7 +79,8 @@ update:
 UPDATE categories
 SET name = coalesce(:name, name),
     sort = coalesce(:order, sort),
-    flags = coalesce(:flags, flags)
+    flags = coalesce(:flags, flags),
+    parent_id = coalesce(:parentId, parent_id)
 WHERE _id = :categoryId;
 
 updateAllFlags:

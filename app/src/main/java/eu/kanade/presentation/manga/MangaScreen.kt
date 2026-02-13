@@ -51,6 +51,7 @@ import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
 import eu.kanade.presentation.manga.components.FirstChapterPreviewGallery
+import eu.kanade.presentation.manga.components.SimilarMangaSection
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
 import eu.kanade.presentation.manga.components.MangaChapterListItem
@@ -90,6 +91,7 @@ fun MangaScreen(
     onChapterClicked: (Chapter) -> Unit,
     onDownloadChapter: ((List<ChapterList.Item>, ChapterDownloadAction) -> Unit)?,
     onAddToLibraryClicked: () -> Unit,
+    onReadLaterClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
     onTrackingClicked: () -> Unit,
@@ -127,6 +129,10 @@ fun MangaScreen(
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
 
+    // For similar manga
+    onSimilarMangaExpand: () -> Unit,
+    onSimilarMangaClick: (Manga) -> Unit,
+
     // For first chapter preview
     onExpandFirstChapterPreview: () -> Unit,
     onLoadMorePreviewPages: () -> Unit,
@@ -150,6 +156,7 @@ fun MangaScreen(
             onChapterClicked = onChapterClicked,
             onDownloadChapter = onDownloadChapter,
             onAddToLibraryClicked = onAddToLibraryClicked,
+            onReadLaterClicked = onReadLaterClicked,
             onWebViewClicked = onWebViewClicked,
             onWebViewLongClicked = onWebViewLongClicked,
             onTrackingClicked = onTrackingClicked,
@@ -174,6 +181,8 @@ fun MangaScreen(
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
             onInvertSelection = onInvertSelection,
+            onSimilarMangaExpand = onSimilarMangaExpand,
+            onSimilarMangaClick = onSimilarMangaClick,
             onExpandFirstChapterPreview = onExpandFirstChapterPreview,
             onLoadMorePreviewPages = onLoadMorePreviewPages,
             onPreviewPageClick = onPreviewPageClick,
@@ -189,6 +198,7 @@ fun MangaScreen(
             onChapterClicked = onChapterClicked,
             onDownloadChapter = onDownloadChapter,
             onAddToLibraryClicked = onAddToLibraryClicked,
+            onReadLaterClicked = onReadLaterClicked,
             onWebViewClicked = onWebViewClicked,
             onWebViewLongClicked = onWebViewLongClicked,
             onTrackingClicked = onTrackingClicked,
@@ -213,6 +223,8 @@ fun MangaScreen(
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
             onInvertSelection = onInvertSelection,
+            onSimilarMangaExpand = onSimilarMangaExpand,
+            onSimilarMangaClick = onSimilarMangaClick,
             onExpandFirstChapterPreview = onExpandFirstChapterPreview,
             onLoadMorePreviewPages = onLoadMorePreviewPages,
             onPreviewPageClick = onPreviewPageClick,
@@ -231,6 +243,7 @@ private fun MangaScreenSmallImpl(
     onChapterClicked: (Chapter) -> Unit,
     onDownloadChapter: ((List<ChapterList.Item>, ChapterDownloadAction) -> Unit)?,
     onAddToLibraryClicked: () -> Unit,
+    onReadLaterClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
     onTrackingClicked: () -> Unit,
@@ -268,6 +281,10 @@ private fun MangaScreenSmallImpl(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+
+    // For similar manga
+    onSimilarMangaExpand: () -> Unit,
+    onSimilarMangaClick: (Manga) -> Unit,
 
     // For first chapter preview
     onExpandFirstChapterPreview: () -> Unit,
@@ -417,6 +434,8 @@ private fun MangaScreenSmallImpl(
                             onTrackingClicked = onTrackingClicked,
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
+                            readLater = state.manga.readLater,
+                            onReadLaterClicked = onReadLaterClicked,
                         )
                     }
 
@@ -432,6 +451,18 @@ private fun MangaScreenSmallImpl(
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
                             onEditNotes = onEditNotesClicked,
+                        )
+                    }
+
+                    item(
+                        key = MangaScreenItem.SIMILAR_MANGA,
+                        contentType = MangaScreenItem.SIMILAR_MANGA,
+                    ) {
+                        SimilarMangaSection(
+                            manga = state.similarManga,
+                            isLoading = state.isLoadingSimilar,
+                            onExpand = onSimilarMangaExpand,
+                            onMangaClick = onSimilarMangaClick,
                         )
                     }
 
@@ -498,6 +529,7 @@ fun MangaScreenLargeImpl(
     onChapterClicked: (Chapter) -> Unit,
     onDownloadChapter: ((List<ChapterList.Item>, ChapterDownloadAction) -> Unit)?,
     onAddToLibraryClicked: () -> Unit,
+    onReadLaterClicked: () -> Unit,
     onWebViewClicked: (() -> Unit)?,
     onWebViewLongClicked: (() -> Unit)?,
     onTrackingClicked: () -> Unit,
@@ -535,6 +567,10 @@ fun MangaScreenLargeImpl(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+
+    // For similar manga
+    onSimilarMangaExpand: () -> Unit,
+    onSimilarMangaClick: (Manga) -> Unit,
 
     // For first chapter preview
     onExpandFirstChapterPreview: () -> Unit,
@@ -672,6 +708,8 @@ fun MangaScreenLargeImpl(
                             onTrackingClicked = onTrackingClicked,
                             onEditIntervalClicked = onEditIntervalClicked,
                             onEditCategory = onEditCategoryClicked,
+                            readLater = state.manga.readLater,
+                            onReadLaterClicked = onReadLaterClicked,
                         )
                         ExpandableMangaDescription(
                             defaultExpandState = true,
@@ -697,6 +735,18 @@ fun MangaScreenLargeImpl(
                                 bottom = contentPadding.calculateBottomPadding(),
                             ),
                         ) {
+                            item(
+                                key = MangaScreenItem.SIMILAR_MANGA,
+                                contentType = MangaScreenItem.SIMILAR_MANGA,
+                            ) {
+                                SimilarMangaSection(
+                                    manga = state.similarManga,
+                                    isLoading = state.isLoadingSimilar,
+                                    onExpand = onSimilarMangaExpand,
+                                    onMangaClick = onSimilarMangaClick,
+                                )
+                            }
+
                             item(
                                 key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                                 contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
@@ -857,6 +907,8 @@ private fun LazyListScope.sharedChapterItems(
                     downloadIndicatorEnabled = !isAnyChapterSelected && !manga.isLocal(),
                     downloadStateProvider = { item.downloadState },
                     downloadProgressProvider = { item.downloadProgress },
+                    downloadedImagesProvider = { item.downloadedImages },
+                    totalPagesProvider = { item.totalPages },
                     chapterSwipeStartAction = chapterSwipeStartAction,
                     chapterSwipeEndAction = chapterSwipeEndAction,
                     onLongClick = {

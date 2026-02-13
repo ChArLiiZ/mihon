@@ -39,6 +39,7 @@ import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.network.HttpException
+import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
@@ -87,6 +88,7 @@ import tachiyomi.domain.manga.interactor.GetDuplicateLibraryManga
 import tachiyomi.domain.manga.interactor.GetMangaWithChapters
 import tachiyomi.domain.manga.interactor.SetMangaChapterFlags
 import tachiyomi.domain.manga.model.Manga
+import tachiyomi.domain.manga.model.MangaUpdate
 import tachiyomi.domain.manga.model.MangaWithChapterCount
 import tachiyomi.domain.manga.model.applyFilter
 import tachiyomi.domain.manga.repository.MangaRepository
@@ -294,6 +296,54 @@ class MangaScreenModel(
         }
     }
 
+    fun fetchSimilarManga() {
+        val state = successState ?: return
+        if (state.similarManga.isNotEmpty() || state.isLoadingSimilar) return
+
+        val genres = state.manga.genre
+        if (genres.isNullOrEmpty()) return
+
+        val catalogueSource = state.source as? CatalogueSource ?: return
+
+        screenModelScope.launchIO {
+            updateSuccessState { it.copy(isLoadingSimilar = true) }
+            try {
+                // Use first genre as search query
+                val searchGenre = genres.first()
+                val result = catalogueSource.getSearchManga(1, searchGenre, catalogueSource.getFilterList())
+
+                // Insert network manga to get proper IDs
+                val networkManga = result.mangas.map { sManga ->
+                    Manga.create().copy(
+                        url = sManga.url,
+                        title = sManga.title,
+                        artist = sManga.artist,
+                        author = sManga.author,
+                        thumbnailUrl = sManga.thumbnail_url,
+                        description = sManga.description,
+                        genre = sManga.genre?.split(", "),
+                        status = sManga.status.toLong(),
+                        source = state.manga.source,
+                        initialized = true,
+                    )
+                }
+
+                val insertedManga = mangaRepository.insertNetworkManga(networkManga)
+                val filtered = insertedManga
+                    .filter { it.id != state.manga.id && it.url != state.manga.url }
+                    .take(10)
+
+                updateSuccessState {
+                    it.copy(similarManga = filtered, isLoadingSimilar = false)
+                }
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                logcat(LogPriority.ERROR, e) { "Failed to fetch similar manga" }
+                updateSuccessState { it.copy(isLoadingSimilar = false) }
+            }
+        }
+    }
+
     fun fetchFirstChapterPreview() {
         val state = successState ?: return
         if (state.firstChapterPages.isNotEmpty() || state.isLoadingPreview) return
@@ -465,6 +515,15 @@ class MangaScreenModel(
             screenModelScope.launch {
                 snackbarHostState.showSnackbar(message = with(context) { e.formattedMessage })
             }
+        }
+    }
+
+    fun toggleReadLater() {
+        val state = successState ?: return
+        screenModelScope.launchIO {
+            val manga = state.manga
+            val newValue = !manga.readLater
+            updateManga.await(MangaUpdate(id = manga.id, readLater = newValue))
         }
     }
 
@@ -691,7 +750,12 @@ class MangaScreenModel(
 
             val newChapters = successState.chapters.toMutableList().apply {
                 val item = removeAt(modifiedIndex)
-                    .copy(downloadState = download.status, downloadProgress = download.progress)
+                    .copy(
+                        downloadState = download.status,
+                        downloadProgress = download.progress,
+                        downloadedImages = download.downloadedImages,
+                        totalPages = download.pages?.size ?: 0,
+                    )
                 add(modifiedIndex, item)
             }
             successState.copy(chapters = newChapters)
@@ -728,6 +792,8 @@ class MangaScreenModel(
                 downloadState = downloadState,
                 downloadProgress = activeDownload?.progress ?: 0,
                 selected = chapter.id in selectedChapterIds,
+                downloadedImages = activeDownload?.downloadedImages ?: 0,
+                totalPages = activeDownload?.pages?.size ?: 0,
             )
         }
     }
@@ -1334,6 +1400,9 @@ class MangaScreenModel(
             val firstChapterVisibleCount: Int = 0,
             val isLoadingPreview: Boolean = false,
             val previewError: String? = null,
+            // Feature 3: Similar manga
+            val similarManga: List<Manga> = emptyList(),
+            val isLoadingSimilar: Boolean = false,
         ) : State {
             val processedChapters by lazy {
                 chapters.applyFilters(manga).toList()
@@ -1413,6 +1482,8 @@ sealed class ChapterList {
         val downloadState: Download.State,
         val downloadProgress: Int,
         val selected: Boolean = false,
+        val downloadedImages: Int = 0,
+        val totalPages: Int = 0,
     ) : ChapterList() {
         val id = chapter.id
         val isDownloaded = downloadState == Download.State.DOWNLOADED

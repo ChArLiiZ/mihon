@@ -11,6 +11,7 @@ class BackupCategory(
     @ProtoNumber(3) var id: Long = 0,
     // @ProtoNumber(3) val updateInterval: Int = 0, 1.x value not used in 0.x
     @ProtoNumber(100) var flags: Long = 0,
+    @ProtoNumber(101) var parentName: String? = null,
 ) {
     fun toCategory(id: Long) = Category(
         id = id,
@@ -20,11 +21,13 @@ class BackupCategory(
     )
 }
 
-val backupCategoryMapper = { category: Category ->
+val backupCategoryMapper = { category: Category, allCategories: List<Category> ->
+    val parentCategory = category.parentId?.let { pid -> allCategories.find { it.id == pid } }
     BackupCategory(
         id = category.id,
         name = category.name,
         order = category.order,
         flags = category.flags,
+        parentName = parentCategory?.name,
     )
 }

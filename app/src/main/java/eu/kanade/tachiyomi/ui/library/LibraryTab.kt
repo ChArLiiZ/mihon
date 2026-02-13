@@ -218,6 +218,10 @@ data object LibraryTab : Tab {
                         getItemsForCategory = { state.getItemsForCategory(it) },
                         getDateAddedBadge = { screenModel.getDateAddedBadge() },
                         getLatestChapterDateBadge = { screenModel.getLatestChapterDateBadge() },
+                        subCategories = state.activeSubCategories,
+                        selectedSubCategoryIds = state.selectedSubCategoryIds,
+                        onToggleSubCategory = screenModel::toggleSubCategoryFilter,
+                        onClearSubCategoryFilter = screenModel::clearSubCategoryFilter,
                     )
                 }
             }

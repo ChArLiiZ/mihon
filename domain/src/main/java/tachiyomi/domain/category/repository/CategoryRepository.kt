@@ -16,6 +16,8 @@ interface CategoryRepository {
 
     fun getCategoriesByMangaIdAsFlow(mangaId: Long): Flow<List<Category>>
 
+    suspend fun getSubCategories(parentId: Long): List<Category>
+
     suspend fun insert(category: Category)
 
     suspend fun updatePartial(update: CategoryUpdate)

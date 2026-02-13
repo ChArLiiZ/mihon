@@ -843,6 +843,27 @@
     <string name="first_chapter_preview">First chapter preview</string>
     <string name="first_chapter_preview_error">Failed to load preview</string>
     <string name="load_more">Load more</string>
+
+    <!-- Read Later -->
+    <string name="read_later">Read later</string>
+    <string name="read_later_added">Read later</string>
+    <string name="read_later_removed">Removed from read later</string>
+    <string name="read_later_empty">No manga in read later list</string>
+
+    <!-- Similar Manga -->
+    <string name="similar_manga">Similar manga</string>
+    <string name="similar_manga_error">Failed to load similar manga</string>
+    <string name="no_similar_manga">No similar manga found</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress_pages">%1$d/%2$d</string>
+
+    <!-- Sub-categories -->
+    <string name="subcategory">Subcategory</string>
+    <string name="add_subcategory">Add subcategory</string>
+    <string name="parent_category">Parent category</string>
+    <string name="filter_subcategory">Filter subcategory</string>
+    <string name="all_subcategories">All subcategories</string>
     <string name="no_next_chapter">Next chapter not found</string>
     <string name="decode_image_error">The image couldn\'t be loaded</string>
     <string name="confirm_set_image_as_cover">Use this image as cover art?</string>

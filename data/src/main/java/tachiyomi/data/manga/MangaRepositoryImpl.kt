@@ -54,6 +54,14 @@ class MangaRepositoryImpl(
         return handler.awaitList { mangasQueries.getReadMangaNotInLibrary(MangaMapper::mapManga) }
     }
 
+    override suspend fun getReadLaterManga(): List<Manga> {
+        return handler.awaitList { mangasQueries.getReadLaterManga(MangaMapper::mapManga) }
+    }
+
+    override fun getReadLaterMangaAsFlow(): Flow<List<Manga>> {
+        return handler.subscribeToList { mangasQueries.getReadLaterManga(MangaMapper::mapManga) }
+    }
+
     override suspend fun getLibraryManga(): List<LibraryManga> {
         return handler.awaitList { libraryViewQueries.library(MangaMapper::mapLibraryManga) }
     }
@@ -179,6 +187,7 @@ class MangaRepositoryImpl(
                     version = value.version,
                     isSyncing = 0,
                     notes = value.notes,
+                    readLater = value.readLater,
                 )
             }
         }

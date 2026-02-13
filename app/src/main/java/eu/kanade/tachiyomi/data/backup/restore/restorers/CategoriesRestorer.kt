@@ -19,21 +19,60 @@ class CategoriesRestorer(
             val dbCategoriesByName = dbCategories.associateBy { it.name }
             var nextOrder = dbCategories.maxOfOrNull { it.order }?.plus(1) ?: 0
 
-            val categories = backupCategories
-                .sortedBy { it.order }
-                .map {
-                    val dbCategory = dbCategoriesByName[it.name]
-                    if (dbCategory != null) return@map dbCategory
+            // First pass: restore root categories (no parentName)
+            val rootBackups = backupCategories.filter { it.parentName == null }.sortedBy { it.order }
+            val subBackups = backupCategories.filter { it.parentName != null }.sortedBy { it.order }
+
+            val restoredCategories = mutableListOf<tachiyomi.domain.category.model.Category>()
+
+            for (backup in rootBackups) {
+                val dbCategory = dbCategoriesByName[backup.name]
+                if (dbCategory != null) {
+                    restoredCategories.add(dbCategory)
+                } else {
                     val order = nextOrder++
-                    handler.awaitOneExecutable {
-                        categoriesQueries.insert(it.name, order, it.flags)
+                    val id = handler.awaitOneExecutable {
+                        categoriesQueries.insert(backup.name, order, backup.flags, null)
                         categoriesQueries.selectLastInsertedRowId()
                     }
-                        .let { id -> it.toCategory(id).copy(order = order) }
+                    restoredCategories.add(backup.toCategory(id).copy(order = order))
                 }
+            }
+
+            // Build name -> id mapping for parent lookup
+            val allCategoriesByName = (dbCategories + restoredCategories).associateBy { it.name }
+
+            // Second pass: restore subcategories with parent linkage
+            for (backup in subBackups) {
+                val existing = dbCategoriesByName[backup.name]
+                if (existing != null) {
+                    // Update parentId to match backup's parent relationship
+                    val expectedParentId = backup.parentName?.let { allCategoriesByName[it]?.id }
+                    if (existing.parentId != expectedParentId) {
+                        handler.await {
+                            categoriesQueries.update(
+                                name = null,
+                                order = null,
+                                flags = null,
+                                parentId = expectedParentId,
+                                categoryId = existing.id,
+                            )
+                        }
+                    }
+                    restoredCategories.add(existing.copy(parentId = expectedParentId))
+                } else {
+                    val parentId = backup.parentName?.let { allCategoriesByName[it]?.id }
+                    val order = nextOrder++
+                    val id = handler.awaitOneExecutable {
+                        categoriesQueries.insert(backup.name, order, backup.flags, parentId)
+                        categoriesQueries.selectLastInsertedRowId()
+                    }
+                    restoredCategories.add(backup.toCategory(id).copy(order = order, parentId = parentId))
+                }
+            }
 
             libraryPreferences.categorizedDisplaySettings().set(
-                (dbCategories + categories)
+                (dbCategories + restoredCategories)
                     .distinctBy { it.flags }
                     .size > 1,
             )

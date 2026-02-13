@@ -128,6 +128,9 @@ class MangaScreen(
                 screenModel.toggleFavorite()
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             },
+            onReadLaterClicked = {
+                screenModel.toggleReadLater()
+            },
             onWebViewClicked = {
                 openMangaInWebView(
                     navigator,
@@ -173,6 +176,10 @@ class MangaScreen(
             onChapterSelected = screenModel::toggleSelection,
             onAllChapterSelected = screenModel::toggleAllSelection,
             onInvertSelection = screenModel::invertSelection,
+            onSimilarMangaExpand = screenModel::fetchSimilarManga,
+            onSimilarMangaClick = { manga ->
+                navigator.push(eu.kanade.tachiyomi.ui.manga.MangaScreen(manga.id))
+            },
             onExpandFirstChapterPreview = screenModel::fetchFirstChapterPreview,
             onLoadMorePreviewPages = screenModel::loadMorePreviewPages,
             onPreviewPageClick = { chapterId, pageIndex ->

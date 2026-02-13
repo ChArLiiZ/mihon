@@ -35,12 +35,19 @@ class CategoryRepositoryImpl(
         }
     }
 
+    override suspend fun getSubCategories(parentId: Long): List<Category> {
+        return handler.awaitList {
+            categoriesQueries.getCategoriesByParentId(parentId, ::mapCategory)
+        }
+    }
+
     override suspend fun insert(category: Category) {
         handler.await {
             categoriesQueries.insert(
                 name = category.name,
                 order = category.order,
                 flags = category.flags,
+                parentId = category.parentId,
             )
         }
     }
@@ -64,6 +71,7 @@ class CategoryRepositoryImpl(
             name = update.name,
             order = update.order,
             flags = update.flags,
+            parentId = update.parentId,
             categoryId = update.id,
         )
     }
@@ -87,12 +95,14 @@ class CategoryRepositoryImpl(
         name: String,
         order: Long,
         flags: Long,
+        parentId: Long?,
     ): Category {
         return Category(
             id = id,
             name = name,
             order = order,
             flags = flags,
+            parentId = parentId,
         )
     }
 }

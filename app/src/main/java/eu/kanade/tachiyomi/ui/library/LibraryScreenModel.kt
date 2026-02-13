@@ -265,7 +265,23 @@ class LibraryScreenModel(
                 groupCache.getOrPut(categoryId) { mutableListOf() }.add(item.id)
             }
         }
-        return categories.filter { showSystemCategory || !it.isSystemCategory }
+
+        // Build a map from child category id -> parent category id
+        val childToParent = categories.filter { it.parentId != null }.associate { it.id to it.parentId!! }
+
+        // Merge subcategory manga into parent category groups
+        for ((childId, parentId) in childToParent) {
+            val childItems = groupCache[childId] ?: continue
+            val parentItems = groupCache.getOrPut(parentId) { mutableListOf() }
+            for (item in childItems) {
+                if (item !in parentItems) {
+                    parentItems.add(item)
+                }
+            }
+        }
+
+        // Only show root categories (parentId == null) as tabs
+        return categories.filter { (showSystemCategory || !it.isSystemCategory) && it.parentId == null }
             .associateWith { groupCache[it.id]?.toList().orEmpty() }
     }
 
@@ -670,11 +686,29 @@ class LibraryScreenModel(
 
     fun updateActiveCategoryIndex(index: Int) {
         val newIndex = mutableState.updateAndGet { state ->
-            state.copy(activeCategoryIndex = index)
+            // Clear subcategory filter when switching tabs
+            state.copy(activeCategoryIndex = index, selectedSubCategoryIds = emptySet())
         }
             .coercedActiveCategoryIndex
 
         libraryPreferences.lastUsedCategory().set(newIndex)
+    }
+
+    fun toggleSubCategoryFilter(subCategoryId: Long) {
+        mutableState.update { state ->
+            val newSet = if (subCategoryId in state.selectedSubCategoryIds) {
+                state.selectedSubCategoryIds - subCategoryId
+            } else {
+                state.selectedSubCategoryIds + subCategoryId
+            }
+            state.copy(selectedSubCategoryIds = newSet)
+        }
+    }
+
+    fun clearSubCategoryFilter() {
+        mutableState.update { state ->
+            state.copy(selectedSubCategoryIds = emptySet())
+        }
     }
 
     fun openChangeCategoryDialog() {
@@ -762,8 +796,16 @@ class LibraryScreenModel(
         val libraryData: LibraryData = LibraryData(),
         private val activeCategoryIndex: Int = 0,
         private val groupedFavorites: Map<Category, List</* LibraryItem */ Long>> = emptyMap(),
+        val selectedSubCategoryIds: Set<Long> = emptySet(),
     ) {
         val displayedCategories: List<Category> = groupedFavorites.keys.toList()
+
+        /** Get subcategories for the currently active parent category */
+        val activeSubCategories: List<Category>
+            get() {
+                val active = activeCategory ?: return emptyList()
+                return libraryData.categories.filter { it.parentId == active.id }
+            }
 
         val coercedActiveCategoryIndex = activeCategoryIndex.coerceIn(
             minimumValue = 0,
@@ -785,11 +827,18 @@ class LibraryScreenModel(
         }
 
         fun getItemsForCategory(category: Category): List<LibraryItem> {
-            return groupedFavorites[category].orEmpty().mapNotNull { libraryData.favoritesById[it] }
+            val items = groupedFavorites[category].orEmpty().mapNotNull { libraryData.favoritesById[it] }
+            // Apply subcategory filter if any subcategories are selected
+            if (selectedSubCategoryIds.isEmpty()) return items
+            return items.filter { item ->
+                item.libraryManga.categories.any { catId -> catId in selectedSubCategoryIds }
+            }
         }
 
         fun getItemCountForCategory(category: Category): Int? {
-            return if (showMangaCount || !searchQuery.isNullOrEmpty()) groupedFavorites[category]?.size else null
+            if (!showMangaCount && searchQuery.isNullOrEmpty()) return null
+            // Use getItemsForCategory to respect subcategory filter
+            return getItemsForCategory(category).size
         }
 
         fun getToolbarTitle(

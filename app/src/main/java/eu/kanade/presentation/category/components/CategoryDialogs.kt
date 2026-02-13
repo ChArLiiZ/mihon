@@ -270,9 +270,11 @@ fun ChangeCategoryDialog(
                             selection = mutableList.toList().toImmutableList()
                         }
                     }
+                    val isSubCategory = checkbox.value.parentId != null
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .then(if (isSubCategory) Modifier.padding(start = MaterialTheme.padding.large) else Modifier)
                             .clickable { onChange(checkbox) },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

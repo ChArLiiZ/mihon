@@ -47,6 +47,10 @@ fun LibraryContent(
     getItemsForCategory: (Category) -> List<LibraryItem>,
     getDateAddedBadge: () -> PreferenceMutableState<Boolean>,
     getLatestChapterDateBadge: () -> PreferenceMutableState<Boolean>,
+    subCategories: List<Category> = emptyList(),
+    selectedSubCategoryIds: Set<Long> = emptySet(),
+    onToggleSubCategory: (Long) -> Unit = {},
+    onClearSubCategoryFilter: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.padding(
@@ -75,6 +79,10 @@ fun LibraryContent(
                         pagerState.animateScrollToPage(it)
                     }
                 },
+                subCategories = subCategories,
+                selectedSubCategoryIds = selectedSubCategoryIds,
+                onToggleSubCategory = onToggleSubCategory,
+                onClearSubCategoryFilter = onClearSubCategoryFilter,
             )
         }
 

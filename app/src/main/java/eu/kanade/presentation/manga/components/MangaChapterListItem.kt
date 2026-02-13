@@ -57,6 +57,8 @@ fun MangaChapterListItem(
     downloadIndicatorEnabled: Boolean,
     downloadStateProvider: () -> Download.State,
     downloadProgressProvider: () -> Int,
+    downloadedImagesProvider: () -> Int = { 0 },
+    totalPagesProvider: () -> Int = { 0 },
     chapterSwipeStartAction: LibraryPreferences.ChapterSwipeAction,
     chapterSwipeEndAction: LibraryPreferences.ChapterSwipeAction,
     onLongClick: () -> Unit,
@@ -177,6 +179,8 @@ fun MangaChapterListItem(
                 downloadStateProvider = downloadStateProvider,
                 downloadProgressProvider = downloadProgressProvider,
                 onClick = { onDownloadClick?.invoke(it) },
+                downloadedImagesProvider = downloadedImagesProvider,
+                totalPagesProvider = totalPagesProvider,
             )
         }
     }

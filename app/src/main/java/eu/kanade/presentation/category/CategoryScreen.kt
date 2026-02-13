@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -33,6 +34,7 @@ import tachiyomi.presentation.core.util.plus
 fun CategoryScreen(
     state: CategoryScreenState.Success,
     onClickCreate: () -> Unit,
+    onClickCreateSub: (Category) -> Unit,
     onClickRename: (Category) -> Unit,
     onClickDelete: (Category) -> Unit,
     onChangeOrder: (Category, Int) -> Unit,
@@ -66,6 +68,7 @@ fun CategoryScreen(
             categories = state.categories,
             lazyListState = lazyListState,
             paddingValues = paddingValues,
+            onClickCreateSub = onClickCreateSub,
             onClickRename = onClickRename,
             onClickDelete = onClickDelete,
             onChangeOrder = onChangeOrder,
@@ -78,21 +81,41 @@ private fun CategoryContent(
     categories: List<Category>,
     lazyListState: LazyListState,
     paddingValues: PaddingValues,
+    onClickCreateSub: (Category) -> Unit,
     onClickRename: (Category) -> Unit,
     onClickDelete: (Category) -> Unit,
     onChangeOrder: (Category, Int) -> Unit,
 ) {
-    val categoriesState = remember { categories.toMutableStateList() }
+    // Build hierarchical list: parent categories followed by their children
+    val hierarchicalList = remember(categories) {
+        val parentCategories = categories.filter { it.parentId == null }
+        val parentIds = parentCategories.map { it.id }.toSet()
+        val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId }
+        buildList {
+            for (parent in parentCategories) {
+                add(parent)
+                childMap[parent.id]?.forEach { child -> add(child) }
+            }
+            // Append orphaned subcategories whose parent no longer exists
+            for ((parentId, children) in childMap) {
+                if (parentId !in parentIds) {
+                    children.forEach { add(it) }
+                }
+            }
+        }
+    }
+
+    val categoriesState = remember { hierarchicalList.toMutableStateList() }
     val reorderableState = rememberReorderableLazyListState(lazyListState, paddingValues) { from, to ->
         val item = categoriesState.removeAt(from.index)
         categoriesState.add(to.index, item)
         onChangeOrder(item, to.index)
     }
 
-    LaunchedEffect(categories) {
+    LaunchedEffect(hierarchicalList) {
         if (!reorderableState.isAnyItemDragging) {
             categoriesState.clear()
-            categoriesState.addAll(categories)
+            categoriesState.addAll(hierarchicalList)
         }
     }
 
@@ -109,11 +132,19 @@ private fun CategoryContent(
             key = { category -> category.key },
         ) { category ->
             ReorderableItem(reorderableState, category.key) {
+                val isSubCategory = category.parentId != null
                 CategoryListItem(
-                    modifier = Modifier.animateItem(),
+                    modifier = Modifier
+                        .animateItem()
+                        .then(if (isSubCategory) Modifier.padding(start = 24.dp) else Modifier),
                     category = category,
                     onRename = { onClickRename(category) },
                     onDelete = { onClickDelete(category) },
+                    onAddSubCategory = if (!isSubCategory) {
+                        { onClickCreateSub(category) }
+                    } else {
+                        null
+                    },
                 )
             }
         }

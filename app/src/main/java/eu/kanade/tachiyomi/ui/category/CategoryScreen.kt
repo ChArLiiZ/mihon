@@ -39,6 +39,7 @@ class CategoryScreen : Screen() {
         CategoryScreen(
             state = successState,
             onClickCreate = { screenModel.showDialog(CategoryDialog.Create) },
+            onClickCreateSub = { screenModel.showDialog(CategoryDialog.CreateSub(it)) },
             onClickRename = { screenModel.showDialog(CategoryDialog.Rename(it)) },
             onClickDelete = { screenModel.showDialog(CategoryDialog.Delete(it)) },
             onChangeOrder = screenModel::changeOrder,
@@ -50,7 +51,14 @@ class CategoryScreen : Screen() {
             CategoryDialog.Create -> {
                 CategoryCreateDialog(
                     onDismissRequest = screenModel::dismissDialog,
-                    onCreate = screenModel::createCategory,
+                    onCreate = { screenModel.createCategory(it) },
+                    categories = successState.categories.fastMap { it.name }.toImmutableList(),
+                )
+            }
+            is CategoryDialog.CreateSub -> {
+                CategoryCreateDialog(
+                    onDismissRequest = screenModel::dismissDialog,
+                    onCreate = { screenModel.createCategory(it, dialog.parent.id) },
                     categories = successState.categories.fastMap { it.name }.toImmutableList(),
                 )
             }

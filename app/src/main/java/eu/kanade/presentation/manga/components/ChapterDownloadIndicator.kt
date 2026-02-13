@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.download.model.Download
@@ -53,6 +54,8 @@ fun ChapterDownloadIndicator(
     downloadProgressProvider: () -> Int,
     onClick: (ChapterDownloadAction) -> Unit,
     modifier: Modifier = Modifier,
+    downloadedImagesProvider: () -> Int = { 0 },
+    totalPagesProvider: () -> Int = { 0 },
 ) {
     when (val downloadState = downloadStateProvider()) {
         Download.State.NOT_DOWNLOADED -> NotDownloadedIndicator(
@@ -66,6 +69,8 @@ fun ChapterDownloadIndicator(
             downloadState = downloadState,
             downloadProgressProvider = downloadProgressProvider,
             onClick = onClick,
+            downloadedImagesProvider = downloadedImagesProvider,
+            totalPagesProvider = totalPagesProvider,
         )
         Download.State.DOWNLOADED -> DownloadedIndicator(
             enabled = enabled,
@@ -114,6 +119,8 @@ private fun DownloadingIndicator(
     downloadProgressProvider: () -> Int,
     onClick: (ChapterDownloadAction) -> Unit,
     modifier: Modifier = Modifier,
+    downloadedImagesProvider: () -> Int = { 0 },
+    totalPagesProvider: () -> Int = { 0 },
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
     Box(
@@ -184,6 +191,17 @@ private fun DownloadingIndicator(
             modifier = ArrowModifier,
             tint = arrowColor,
         )
+        // Show download progress text
+        val downloadedImages = downloadedImagesProvider()
+        val totalPages = totalPagesProvider()
+        if (totalPages > 0) {
+            Text(
+                text = stringResource(MR.strings.download_progress_pages, downloadedImages, totalPages),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 

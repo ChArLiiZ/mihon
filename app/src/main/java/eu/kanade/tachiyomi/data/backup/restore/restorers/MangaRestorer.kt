@@ -130,6 +130,7 @@ class MangaRestorer(
                 version = manga.version,
                 isSyncing = 1,
                 notes = manga.notes,
+                readLater = null,
             )
         }
         return manga

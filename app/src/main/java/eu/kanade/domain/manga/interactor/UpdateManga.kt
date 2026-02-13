@@ -112,8 +112,10 @@ class UpdateManga(
             true -> Instant.now().toEpochMilli()
             false -> 0
         }
+        // Auto-clear readLater when adding to library
+        val readLater = if (favorite) false else null
         return mangaRepository.update(
-            MangaUpdate(id = mangaId, favorite = favorite, dateAdded = dateAdded),
+            MangaUpdate(id = mangaId, favorite = favorite, dateAdded = dateAdded, readLater = readLater),
         )
     }
 }

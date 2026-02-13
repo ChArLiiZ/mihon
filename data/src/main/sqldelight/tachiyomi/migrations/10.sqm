@@ -1,0 +1,5 @@
+-- Add read_later column to mangas
+ALTER TABLE mangas ADD COLUMN read_later INTEGER NOT NULL DEFAULT 0;
+
+-- Add parent_id column to categories for sub-categories
+ALTER TABLE categories ADD COLUMN parent_id INTEGER;

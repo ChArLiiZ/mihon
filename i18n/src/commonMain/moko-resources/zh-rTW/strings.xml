@@ -243,6 +243,27 @@
     <string name="first_chapter_preview">第一話預覽</string>
     <string name="first_chapter_preview_error">預覽載入失敗</string>
     <string name="load_more">載入更多</string>
+
+    <!-- 稍後閱讀 -->
+    <string name="read_later">稍後閱讀</string>
+    <string name="read_later_added">稍後閱讀</string>
+    <string name="read_later_removed">已從稍後閱讀移除</string>
+    <string name="read_later_empty">稍後閱讀列表為空</string>
+
+    <!-- 相似漫畫 -->
+    <string name="similar_manga">相似漫畫</string>
+    <string name="similar_manga_error">無法載入相似漫畫</string>
+    <string name="no_similar_manga">找不到相似漫畫</string>
+
+    <!-- 下載進度 -->
+    <string name="download_progress_pages">%1$d/%2$d</string>
+
+    <!-- 子分類 -->
+    <string name="subcategory">子分類</string>
+    <string name="add_subcategory">新增子分類</string>
+    <string name="parent_category">父分類</string>
+    <string name="filter_subcategory">篩選子分類</string>
+    <string name="all_subcategories">所有子分類</string>
     <string name="no_next_chapter">找不到下一章</string>
     <string name="transition_finished">已閱畢：</string>
     <string name="transition_next">接下來：</string>

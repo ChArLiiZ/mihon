@@ -20,6 +20,10 @@ interface MangaRepository {
 
     suspend fun getReadMangaNotInLibrary(): List<Manga>
 
+    suspend fun getReadLaterManga(): List<Manga>
+
+    fun getReadLaterMangaAsFlow(): Flow<List<Manga>>
+
     suspend fun getLibraryManga(): List<LibraryManga>
 
     fun getLibraryMangaAsFlow(): Flow<List<LibraryManga>>
