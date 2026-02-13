@@ -39,6 +39,7 @@ import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.network.HttpException
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.model.Page
@@ -50,8 +51,11 @@ import tachiyomi.domain.history.interactor.GetNextChapters
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -130,6 +134,8 @@ class MangaScreenModel(
     private val setMangaCategories: SetMangaCategories = Injekt.get(),
     private val mangaRepository: MangaRepository = Injekt.get(),
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get(),
+    private val sourceManager: SourceManager = Injekt.get(),
+    private val sourcePreferences: SourcePreferences = Injekt.get(),
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
 ) : StateScreenModel<MangaScreenModel.State>(State.Loading) {
 
@@ -233,7 +239,7 @@ class MangaScreenModel(
             mutableState.update {
                 State.Success(
                     manga = manga,
-                    source = Injekt.get<SourceManager>().getOrStub(manga.source),
+                    source = sourceManager.getOrStub(manga.source),
                     isFromSource = isFromSource,
                     chapters = chapters,
                     availableScanlators = getAvailableScanlators.await(mangaId),
@@ -296,6 +302,42 @@ class MangaScreenModel(
         }
     }
 
+    /**
+     * Normalize a manga title for deduplication across sources.
+     * Removes bracketed content, lowercases, and strips non-alphanumeric/non-CJK chars.
+     */
+    private fun normalizeTitle(title: String): String {
+        // Remove content in various bracket types: [], (), 【】, 「」, （）, 《》, etc.
+        val bracketPattern = Regex(
+            "[\\[\\(【「（《〈〔｛『].*?[\\]\\)】」）》〉〕｝』]",
+        )
+        var normalized = bracketPattern.replace(title, "")
+        // Lowercase
+        normalized = normalized.lowercase()
+        // Keep only alphanumeric + CJK characters (remove punctuation, spaces, etc.)
+        normalized = normalized.replace(Regex("[^\\p{L}\\p{N}\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}]"), "")
+        return normalized.trim()
+    }
+
+    /**
+     * Check if two titles are similar enough to be considered the same manga.
+     * Returns true if normalized titles are equal, or if one contains the other
+     * and the shorter one is at least 60% of the longer one's length.
+     */
+    private fun isSimilarTitle(a: String, b: String): Boolean {
+        val na = normalizeTitle(a)
+        val nb = normalizeTitle(b)
+        if (na.isEmpty() || nb.isEmpty()) return false
+        if (na == nb) return true
+        val longer = if (na.length >= nb.length) na else nb
+        val shorter = if (na.length < nb.length) na else nb
+        return longer.contains(shorter) && shorter.length.toDouble() / longer.length >= 0.6
+    }
+
+    fun getSourceName(sourceId: Long): String {
+        return sourceManager.getOrStub(sourceId).name
+    }
+
     fun fetchSimilarManga() {
         val state = successState ?: return
         if (state.similarManga.isNotEmpty() || state.isLoadingSimilar) return
@@ -303,38 +345,87 @@ class MangaScreenModel(
         val genres = state.manga.genre
         if (genres.isNullOrEmpty()) return
 
-        val catalogueSource = state.source as? CatalogueSource ?: return
+        // Get pinned sources only
+        val pinnedIds = sourcePreferences.pinnedSources().get()
+        val pinnedSources = sourceManager.getCatalogueSources()
+            .filter { "${it.id}" in pinnedIds }
+
+        if (pinnedSources.isEmpty()) {
+            updateSuccessState { it.copy(noPinnedSources = true, isLoadingSimilar = false) }
+            return
+        }
 
         screenModelScope.launchIO {
-            updateSuccessState { it.copy(isLoadingSimilar = true) }
+            updateSuccessState { it.copy(isLoadingSimilar = true, noPinnedSources = false) }
             try {
-                // Use first genre as search query
                 val searchGenre = genres.first()
-                val result = catalogueSource.getSearchManga(1, searchGenre, catalogueSource.getFilterList())
+                val dispatcher = Dispatchers.IO.limitedParallelism(5)
 
-                // Insert network manga to get proper IDs
-                val networkManga = result.mangas.map { sManga ->
-                    Manga.create().copy(
-                        url = sManga.url,
-                        title = sManga.title,
-                        artist = sManga.artist,
-                        author = sManga.author,
-                        thumbnailUrl = sManga.thumbnail_url,
-                        description = sManga.description,
-                        genre = sManga.genre?.split(", "),
-                        status = sManga.status.toLong(),
-                        source = state.manga.source,
-                        initialized = true,
-                    )
+                // Search all pinned sources in parallel
+                val allResults = coroutineScope {
+                    pinnedSources.map { source ->
+                        async {
+                            try {
+                                val result = withContext(dispatcher) {
+                                    source.getSearchManga(1, searchGenre, source.getFilterList())
+                                }
+                                result.mangas.map { sManga ->
+                                    Manga.create().copy(
+                                        url = sManga.url,
+                                        title = sManga.title,
+                                        artist = sManga.artist,
+                                        author = sManga.author,
+                                        thumbnailUrl = sManga.thumbnail_url,
+                                        description = sManga.description,
+                                        genre = sManga.genre?.split(", "),
+                                        status = sManga.status.toLong(),
+                                        source = source.id,
+                                        initialized = true,
+                                    )
+                                }
+                            } catch (e: Throwable) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                logcat(LogPriority.WARN, e) { "Failed to search similar manga from source ${source.name}" }
+                                emptyList()
+                            }
+                        }
+                    }.awaitAll().flatten()
                 }
 
-                val insertedManga = mangaRepository.insertNetworkManga(networkManga)
-                val filtered = insertedManga
+                // Insert into DB to get proper IDs
+                val insertedManga = if (allResults.isNotEmpty()) {
+                    mangaRepository.insertNetworkManga(allResults)
+                } else {
+                    emptyList()
+                }
+
+                // Filter out current manga, then deduplicate by normalized title
+                val seenNormTitles = mutableListOf<String>()
+                val currentNormalized = normalizeTitle(state.manga.title)
+                if (currentNormalized.isNotEmpty()) seenNormTitles.add(currentNormalized)
+
+                val deduplicated = insertedManga
                     .filter { it.id != state.manga.id && it.url != state.manga.url }
-                    .take(10)
+                    .filter { manga ->
+                        val norm = normalizeTitle(manga.title)
+                        if (norm.isEmpty()) return@filter true
+                        val isDup = seenNormTitles.any { seen ->
+                            if (norm == seen) return@any true
+                            val longer = if (norm.length >= seen.length) norm else seen
+                            val shorter = if (norm.length < seen.length) norm else seen
+                            longer.contains(shorter) && shorter.length.toDouble() / longer.length >= 0.6
+                        }
+                        if (!isDup) {
+                            seenNormTitles.add(norm)
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    .take(20)
 
                 updateSuccessState {
-                    it.copy(similarManga = filtered, isLoadingSimilar = false)
+                    it.copy(similarManga = deduplicated, isLoadingSimilar = false)
                 }
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -1426,6 +1517,7 @@ class MangaScreenModel(
             // Feature 3: Similar manga
             val similarManga: List<Manga> = emptyList(),
             val isLoadingSimilar: Boolean = false,
+            val noPinnedSources: Boolean = false,
         ) : State {
             val processedChapters by lazy {
                 chapters.applyFilters(manga).toList()

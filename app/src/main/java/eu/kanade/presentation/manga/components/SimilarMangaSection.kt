@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,8 +46,10 @@ private val CoverPlaceholderColor = androidx.compose.ui.graphics.Color(0x1F88888
 fun SimilarMangaSection(
     manga: List<Manga>,
     isLoading: Boolean,
+    noPinnedSources: Boolean,
     onExpand: () -> Unit,
     onMangaClick: (Manga) -> Unit,
+    getSourceName: (Long) -> String,
     modifier: Modifier = Modifier,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -96,6 +97,17 @@ fun SimilarMangaSection(
                         CircularProgressIndicator()
                     }
                 }
+                noPinnedSources -> {
+                    Text(
+                        text = stringResource(MR.strings.no_pinned_sources_for_similar),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 manga.isEmpty() && !isLoading -> {
                     Text(
                         text = stringResource(MR.strings.no_similar_manga),
@@ -118,6 +130,7 @@ fun SimilarMangaSection(
                         ) { item ->
                             SimilarMangaItem(
                                 manga = item,
+                                sourceName = getSourceName(item.source),
                                 onClick = { onMangaClick(item) },
                             )
                         }
@@ -131,6 +144,7 @@ fun SimilarMangaSection(
 @Composable
 private fun SimilarMangaItem(
     manga: Manga,
+    sourceName: String,
     onClick: () -> Unit,
 ) {
     Column(
@@ -161,6 +175,15 @@ private fun SimilarMangaItem(
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(
+            text = sourceName,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.padding(top = 2.dp),
         )
     }
 }

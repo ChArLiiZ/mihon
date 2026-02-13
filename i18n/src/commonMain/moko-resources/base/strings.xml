@@ -854,6 +854,7 @@
     <string name="similar_manga">Similar manga</string>
     <string name="similar_manga_error">Failed to load similar manga</string>
     <string name="no_similar_manga">No similar manga found</string>
+    <string name="no_pinned_sources_for_similar">Please pin sources first to search for similar manga</string>
 
     <!-- Download Progress -->
     <string name="download_progress_pages">%1$d/%2$d</string>
