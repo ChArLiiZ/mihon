@@ -17,7 +17,7 @@ class DeleteCategory(
     suspend fun await(categoryId: Long) = withNonCancellableContext {
         // Recursively collect all descendant category IDs before deleting
         val allDescendantIds = mutableListOf<Long>()
-        fun collectDescendants(parentId: Long) {
+        suspend fun collectDescendants(parentId: Long) {
             val children = try {
                 categoryRepository.getSubCategories(parentId)
             } catch (_: Exception) {
