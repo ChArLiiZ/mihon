@@ -132,7 +132,6 @@ fun MangaScreen(
     // For similar manga
     onSimilarMangaExpand: () -> Unit,
     onSimilarMangaClick: (Manga) -> Unit,
-    getSourceName: (Long) -> String,
 
     // For first chapter preview
     onExpandFirstChapterPreview: () -> Unit,
@@ -184,7 +183,6 @@ fun MangaScreen(
             onInvertSelection = onInvertSelection,
             onSimilarMangaExpand = onSimilarMangaExpand,
             onSimilarMangaClick = onSimilarMangaClick,
-            getSourceName = getSourceName,
             onExpandFirstChapterPreview = onExpandFirstChapterPreview,
             onLoadMorePreviewPages = onLoadMorePreviewPages,
             onPreviewPageClick = onPreviewPageClick,
@@ -227,7 +225,6 @@ fun MangaScreen(
             onInvertSelection = onInvertSelection,
             onSimilarMangaExpand = onSimilarMangaExpand,
             onSimilarMangaClick = onSimilarMangaClick,
-            getSourceName = getSourceName,
             onExpandFirstChapterPreview = onExpandFirstChapterPreview,
             onLoadMorePreviewPages = onLoadMorePreviewPages,
             onPreviewPageClick = onPreviewPageClick,
@@ -288,7 +285,6 @@ private fun MangaScreenSmallImpl(
     // For similar manga
     onSimilarMangaExpand: () -> Unit,
     onSimilarMangaClick: (Manga) -> Unit,
-    getSourceName: (Long) -> String,
 
     // For first chapter preview
     onExpandFirstChapterPreview: () -> Unit,
@@ -465,10 +461,8 @@ private fun MangaScreenSmallImpl(
                         SimilarMangaSection(
                             manga = state.similarManga,
                             isLoading = state.isLoadingSimilar,
-                            noPinnedSources = state.noPinnedSources,
                             onExpand = onSimilarMangaExpand,
                             onMangaClick = onSimilarMangaClick,
-                            getSourceName = getSourceName,
                         )
                     }
 
@@ -577,7 +571,6 @@ fun MangaScreenLargeImpl(
     // For similar manga
     onSimilarMangaExpand: () -> Unit,
     onSimilarMangaClick: (Manga) -> Unit,
-    getSourceName: (Long) -> String,
 
     // For first chapter preview
     onExpandFirstChapterPreview: () -> Unit,
@@ -749,10 +742,8 @@ fun MangaScreenLargeImpl(
                                 SimilarMangaSection(
                                     manga = state.similarManga,
                                     isLoading = state.isLoadingSimilar,
-                                    noPinnedSources = state.noPinnedSources,
                                     onExpand = onSimilarMangaExpand,
                                     onMangaClick = onSimilarMangaClick,
-                                    getSourceName = getSourceName,
                                 )
                             }
 

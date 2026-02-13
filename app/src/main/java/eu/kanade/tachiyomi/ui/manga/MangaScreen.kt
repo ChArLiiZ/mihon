@@ -180,7 +180,6 @@ class MangaScreen(
             onSimilarMangaClick = { manga ->
                 navigator.push(eu.kanade.tachiyomi.ui.manga.MangaScreen(manga.id))
             },
-            getSourceName = screenModel::getSourceName,
             onExpandFirstChapterPreview = screenModel::fetchFirstChapterPreview,
             onLoadMorePreviewPages = screenModel::loadMorePreviewPages,
             onPreviewPageClick = { chapterId, pageIndex ->
