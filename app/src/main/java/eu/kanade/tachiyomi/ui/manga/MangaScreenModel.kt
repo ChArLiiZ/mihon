@@ -360,9 +360,10 @@ class MangaScreenModel(
             try {
                 val searchGenre = genres.first()
                 val dispatcher = Dispatchers.IO.limitedParallelism(5)
+                val currentGenresLower = genres.map { it.lowercase().trim() }.toSet()
 
-                // Search all pinned sources in parallel
-                val allResults = coroutineScope {
+                // Search all pinned sources in parallel, keep results grouped by source
+                val perSourceResults: List<List<Manga>> = coroutineScope {
                     pinnedSources.map { source ->
                         async {
                             try {
@@ -389,12 +390,27 @@ class MangaScreenModel(
                                 emptyList()
                             }
                         }
-                    }.awaitAll().flatten()
+                    }.awaitAll()
+                }
+
+                // Interleave results from different sources (round-robin)
+                val interleaved = mutableListOf<Manga>()
+                val iterators = perSourceResults.map { it.iterator() }.toMutableList()
+                while (iterators.isNotEmpty()) {
+                    val it = iterators.iterator()
+                    while (it.hasNext()) {
+                        val sourceIter = it.next()
+                        if (sourceIter.hasNext()) {
+                            interleaved.add(sourceIter.next())
+                        } else {
+                            it.remove()
+                        }
+                    }
                 }
 
                 // Insert into DB to get proper IDs
-                val insertedManga = if (allResults.isNotEmpty()) {
-                    mangaRepository.insertNetworkManga(allResults)
+                val insertedManga = if (interleaved.isNotEmpty()) {
+                    mangaRepository.insertNetworkManga(interleaved)
                 } else {
                     emptyList()
                 }
@@ -422,10 +438,16 @@ class MangaScreenModel(
                             false
                         }
                     }
+
+                // Sort by genre similarity (more overlapping genres = higher rank)
+                val sorted = deduplicated.sortedByDescending { manga ->
+                    val mangaGenres = manga.genre?.map { it.lowercase().trim() }?.toSet() ?: emptySet()
+                    currentGenresLower.intersect(mangaGenres).size
+                }
                     .take(20)
 
                 updateSuccessState {
-                    it.copy(similarManga = deduplicated, isLoadingSimilar = false)
+                    it.copy(similarManga = sorted, isLoadingSimilar = false)
                 }
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
