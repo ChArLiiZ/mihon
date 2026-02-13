@@ -716,8 +716,11 @@ class LibraryScreenModel(
             // Create a copy of selected manga
             val mangaList = state.value.selectedManga
 
-            // Hide the default category because it has a different behavior than the ones from db.
-            val categories = state.value.displayedCategories.filter { it.id != 0L }
+            // Use all categories (including subcategories) in hierarchical order,
+            // hiding the default system category.
+            val allCategories = state.value.libraryData.categories
+                .filterNot { it.isSystemCategory }
+            val categories = buildHierarchicalCategoryList(allCategories)
 
             // Get indexes of the common categories to preselect.
             val common = getCommonCategories(mangaList)
@@ -733,6 +736,28 @@ class LibraryScreenModel(
                 }
                 .toImmutableList()
             mutableState.update { it.copy(dialog = Dialog.ChangeCategory(mangaList, preselected)) }
+        }
+    }
+
+    /**
+     * Build a hierarchical list: root categories followed by their children,
+     * with orphaned subcategories appended at the end.
+     */
+    private fun buildHierarchicalCategoryList(categories: List<Category>): List<Category> {
+        val roots = categories.filter { it.parentId == null }
+        val rootIds = roots.map { it.id }.toSet()
+        val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId }
+        return buildList {
+            for (parent in roots) {
+                add(parent)
+                childMap[parent.id]?.forEach { add(it) }
+            }
+            // Append orphaned subcategories
+            for ((parentId, children) in childMap) {
+                if (parentId !in rootIds) {
+                    children.forEach { add(it) }
+                }
+            }
         }
     }
 

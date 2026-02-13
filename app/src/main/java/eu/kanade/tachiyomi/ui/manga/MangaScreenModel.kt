@@ -660,12 +660,35 @@ class MangaScreenModel(
     }
 
     /**
-     * Get user categories.
+     * Get user categories in hierarchical order (parent followed by children).
      *
      * @return List of categories, not including the default category
      */
     suspend fun getCategories(): List<Category> {
-        return getCategories.await().filterNot { it.isSystemCategory }
+        val all = getCategories.await().filterNot { it.isSystemCategory }
+        return buildHierarchicalCategoryList(all)
+    }
+
+    /**
+     * Build a hierarchical list: root categories followed by their children,
+     * with orphaned subcategories appended at the end.
+     */
+    private fun buildHierarchicalCategoryList(categories: List<Category>): List<Category> {
+        val roots = categories.filter { it.parentId == null }
+        val rootIds = roots.map { it.id }.toSet()
+        val childMap = categories.filter { it.parentId != null }.groupBy { it.parentId }
+        return buildList {
+            for (parent in roots) {
+                add(parent)
+                childMap[parent.id]?.forEach { add(it) }
+            }
+            // Append orphaned subcategories
+            for ((parentId, children) in childMap) {
+                if (parentId !in rootIds) {
+                    children.forEach { add(it) }
+                }
+            }
+        }
     }
 
     /**

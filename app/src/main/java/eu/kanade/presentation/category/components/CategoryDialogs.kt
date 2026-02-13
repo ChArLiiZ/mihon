@@ -168,6 +168,7 @@ fun CategoryDeleteDialog(
     onDismissRequest: () -> Unit,
     onDelete: () -> Unit,
     category: String,
+    subCategoryCount: Int = 0,
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -188,7 +189,16 @@ fun CategoryDeleteDialog(
             Text(text = stringResource(MR.strings.delete_category))
         },
         text = {
-            Text(text = stringResource(MR.strings.delete_category_confirmation, category))
+            Column {
+                Text(text = stringResource(MR.strings.delete_category_confirmation, category))
+                if (subCategoryCount > 0) {
+                    Text(
+                        text = stringResource(MR.strings.delete_category_with_subcategories_warning, subCategoryCount),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = MaterialTheme.padding.small),
+                    )
+                }
+            }
         },
     )
 }

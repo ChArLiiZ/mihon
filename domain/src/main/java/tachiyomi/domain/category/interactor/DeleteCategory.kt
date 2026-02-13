@@ -15,7 +15,26 @@ class DeleteCategory(
 ) {
 
     suspend fun await(categoryId: Long) = withNonCancellableContext {
+        // Recursively collect all descendant category IDs before deleting
+        val allDescendantIds = mutableListOf<Long>()
+        fun collectDescendants(parentId: Long) {
+            val children = try {
+                categoryRepository.getSubCategories(parentId)
+            } catch (_: Exception) {
+                emptyList()
+            }
+            for (child in children) {
+                collectDescendants(child.id)
+                allDescendantIds.add(child.id)
+            }
+        }
+        collectDescendants(categoryId)
+
         try {
+            // Delete from deepest descendants up to avoid FK issues
+            for (descendantId in allDescendantIds.reversed()) {
+                categoryRepository.delete(descendantId)
+            }
             categoryRepository.delete(categoryId)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
@@ -35,6 +54,12 @@ class DeleteCategory(
             libraryPreferences.defaultCategory().delete()
         }
 
+        // Collect all deleted category IDs (parent + all descendants) for preference cleanup
+        val deletedIds = buildSet {
+            add(categoryId.toString())
+            allDescendantIds.forEach { add(it.toString()) }
+        }
+
         val categoryPreferences = listOf(
             libraryPreferences.updateCategories(),
             libraryPreferences.updateCategoriesExclude(),
@@ -42,11 +67,11 @@ class DeleteCategory(
             downloadPreferences.downloadNewChapterCategories(),
             downloadPreferences.downloadNewChapterCategoriesExclude(),
         )
-        val categoryIdString = categoryId.toString()
         categoryPreferences.forEach { preference ->
             val ids = preference.get()
-            if (categoryIdString !in ids) return@forEach
-            preference.set(ids.minus(categoryIdString))
+            val staleIds = ids.intersect(deletedIds)
+            if (staleIds.isEmpty()) return@forEach
+            preference.set(ids - staleIds)
         }
 
         try {

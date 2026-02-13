@@ -107,6 +107,10 @@ private fun CategoryContent(
 
     val categoriesState = remember { hierarchicalList.toMutableStateList() }
     val reorderableState = rememberReorderableLazyListState(lazyListState, paddingValues) { from, to ->
+        val fromItem = categoriesState.getOrNull(from.index) ?: return@rememberReorderableLazyListState
+        val toItem = categoriesState.getOrNull(to.index) ?: return@rememberReorderableLazyListState
+        // Only allow reordering within the same level (same parentId)
+        if (fromItem.parentId != toItem.parentId) return@rememberReorderableLazyListState
         val item = categoriesState.removeAt(from.index)
         categoriesState.add(to.index, item)
         onChangeOrder(item, to.index)

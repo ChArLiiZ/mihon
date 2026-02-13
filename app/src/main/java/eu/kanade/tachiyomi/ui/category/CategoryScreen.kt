@@ -49,32 +49,49 @@ class CategoryScreen : Screen() {
         when (val dialog = successState.dialog) {
             null -> {}
             CategoryDialog.Create -> {
+                // For root categories, only check against other root category names
+                val siblingNames = successState.categories
+                    .filter { it.parentId == null }
+                    .fastMap { it.name }
+                    .toImmutableList()
                 CategoryCreateDialog(
                     onDismissRequest = screenModel::dismissDialog,
                     onCreate = { screenModel.createCategory(it) },
-                    categories = successState.categories.fastMap { it.name }.toImmutableList(),
+                    categories = siblingNames,
                 )
             }
             is CategoryDialog.CreateSub -> {
+                // For subcategories, only check against sibling subcategory names under the same parent
+                val siblingNames = successState.categories
+                    .filter { it.parentId == dialog.parent.id }
+                    .fastMap { it.name }
+                    .toImmutableList()
                 CategoryCreateDialog(
                     onDismissRequest = screenModel::dismissDialog,
                     onCreate = { screenModel.createCategory(it, dialog.parent.id) },
-                    categories = successState.categories.fastMap { it.name }.toImmutableList(),
+                    categories = siblingNames,
                 )
             }
             is CategoryDialog.Rename -> {
+                // Only check against sibling category names (same parentId)
+                val siblingNames = successState.categories
+                    .filter { it.parentId == dialog.category.parentId && it.id != dialog.category.id }
+                    .fastMap { it.name }
+                    .toImmutableList()
                 CategoryRenameDialog(
                     onDismissRequest = screenModel::dismissDialog,
                     onRename = { screenModel.renameCategory(dialog.category, it) },
-                    categories = successState.categories.fastMap { it.name }.toImmutableList(),
+                    categories = siblingNames,
                     category = dialog.category.name,
                 )
             }
             is CategoryDialog.Delete -> {
+                val subCategoryCount = successState.categories.count { it.parentId == dialog.category.id }
                 CategoryDeleteDialog(
                     onDismissRequest = screenModel::dismissDialog,
                     onDelete = { screenModel.deleteCategory(dialog.category.id) },
                     category = dialog.category.name,
+                    subCategoryCount = subCategoryCount,
                 )
             }
         }

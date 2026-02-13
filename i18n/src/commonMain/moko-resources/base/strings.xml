@@ -864,6 +864,8 @@
     <string name="parent_category">Parent category</string>
     <string name="filter_subcategory">Filter subcategory</string>
     <string name="all_subcategories">All subcategories</string>
+    <string name="delete_category_with_subcategories_warning">This category has %d subcategory(ies) that will also be deleted.</string>
+    <string name="action_add_subcategory">Add subcategory</string>
     <string name="no_next_chapter">Next chapter not found</string>
     <string name="decode_image_error">The image couldn\'t be loaded</string>
     <string name="confirm_set_image_as_cover">Use this image as cover art?</string>

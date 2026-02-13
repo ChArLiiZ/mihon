@@ -264,6 +264,8 @@
     <string name="parent_category">父分類</string>
     <string name="filter_subcategory">篩選子分類</string>
     <string name="all_subcategories">所有子分類</string>
+    <string name="delete_category_with_subcategories_warning">此分類下有 %d 個子分類，將一併被刪除。</string>
+    <string name="action_add_subcategory">新增子分類</string>
     <string name="no_next_chapter">找不到下一章</string>
     <string name="transition_finished">已閱畢：</string>
     <string name="transition_next">接下來：</string>
