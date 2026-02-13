@@ -128,33 +128,41 @@ object ImageUtil {
      */
     fun splitInHalf(imageSource: BufferedSource, side: Side): BufferedSource {
         val imageBitmap = BitmapFactory.decodeStream(imageSource.inputStream())
-        val height = imageBitmap.height
-        val width = imageBitmap.width
+        try {
+            val height = imageBitmap.height
+            val width = imageBitmap.width
 
-        val singlePage = Rect(0, 0, width / 2, height)
+            val singlePage = Rect(0, 0, width / 2, height)
 
-        val half = createBitmap(width / 2, height)
-        val part = when (side) {
-            Side.RIGHT -> Rect(width - width / 2, 0, width, height)
-            Side.LEFT -> Rect(0, 0, width / 2, height)
+            val half = createBitmap(width / 2, height)
+            val part = when (side) {
+                Side.RIGHT -> Rect(width - width / 2, 0, width, height)
+                Side.LEFT -> Rect(0, 0, width / 2, height)
+            }
+            half.applyCanvas {
+                drawBitmap(imageBitmap, part, singlePage, null)
+            }
+            val output = Buffer()
+            half.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
+            half.recycle()
+
+            return output
+        } finally {
+            imageBitmap.recycle()
         }
-        half.applyCanvas {
-            drawBitmap(imageBitmap, part, singlePage, null)
-        }
-        val output = Buffer()
-        half.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
-
-        return output
     }
 
     fun rotateImage(imageSource: BufferedSource, degrees: Float): BufferedSource {
         val imageBitmap = BitmapFactory.decodeStream(imageSource.inputStream())
-        val rotated = rotateBitMap(imageBitmap, degrees)
-
-        val output = Buffer()
-        rotated.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
-
-        return output
+        try {
+            val rotated = rotateBitMap(imageBitmap, degrees)
+            val output = Buffer()
+            rotated.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
+            rotated.recycle()
+            return output
+        } finally {
+            imageBitmap.recycle()
+        }
     }
 
     private fun rotateBitMap(bitmap: Bitmap, degrees: Float): Bitmap {
@@ -167,30 +175,35 @@ object ImageUtil {
      */
     fun splitAndMerge(imageSource: BufferedSource, upperSide: Side): BufferedSource {
         val imageBitmap = BitmapFactory.decodeStream(imageSource.inputStream())
-        val height = imageBitmap.height
-        val width = imageBitmap.width
+        try {
+            val height = imageBitmap.height
+            val width = imageBitmap.width
 
-        val result = createBitmap(width / 2, height * 2)
-        result.applyCanvas {
-            // right -> upper
-            val rightPart = when (upperSide) {
-                Side.RIGHT -> Rect(width - width / 2, 0, width, height)
-                Side.LEFT -> Rect(0, 0, width / 2, height)
+            val result = createBitmap(width / 2, height * 2)
+            result.applyCanvas {
+                // right -> upper
+                val rightPart = when (upperSide) {
+                    Side.RIGHT -> Rect(width - width / 2, 0, width, height)
+                    Side.LEFT -> Rect(0, 0, width / 2, height)
+                }
+                val upperPart = Rect(0, 0, width / 2, height)
+                drawBitmap(imageBitmap, rightPart, upperPart, null)
+                // left -> bottom
+                val leftPart = when (upperSide) {
+                    Side.LEFT -> Rect(width - width / 2, 0, width, height)
+                    Side.RIGHT -> Rect(0, 0, width / 2, height)
+                }
+                val bottomPart = Rect(0, height, width / 2, height * 2)
+                drawBitmap(imageBitmap, leftPart, bottomPart, null)
             }
-            val upperPart = Rect(0, 0, width / 2, height)
-            drawBitmap(imageBitmap, rightPart, upperPart, null)
-            // left -> bottom
-            val leftPart = when (upperSide) {
-                Side.LEFT -> Rect(width - width / 2, 0, width, height)
-                Side.RIGHT -> Rect(0, 0, width / 2, height)
-            }
-            val bottomPart = Rect(0, height, width / 2, height * 2)
-            drawBitmap(imageBitmap, leftPart, bottomPart, null)
+
+            val output = Buffer()
+            result.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
+            result.recycle()
+            return output
+        } finally {
+            imageBitmap.recycle()
         }
-
-        val output = Buffer()
-        result.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
-        return output
     }
 
     enum class Side {

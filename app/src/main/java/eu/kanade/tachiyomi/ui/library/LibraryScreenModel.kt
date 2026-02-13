@@ -403,7 +403,7 @@ class LibraryScreenModel(
         return combine(
             getLibraryManga.subscribe(),
             getLibraryItemPreferencesFlow(),
-            downloadCache.changes,
+            downloadCache.changes.distinctUntilChanged(),
         ) { libraryManga, preferences, _ ->
             libraryManga.map { manga ->
                 LibraryItem(

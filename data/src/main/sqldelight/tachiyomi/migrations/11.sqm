@@ -1,0 +1,16 @@
+-- Performance indexes
+
+-- Speed up libraryView JOIN on mangas_categories
+CREATE INDEX IF NOT EXISTS mangas_categories_manga_id_index ON mangas_categories(manga_id);
+
+-- Speed up chapter lookup by URL (used by SyncChaptersWithSource)
+CREATE INDEX IF NOT EXISTS chapters_url_index ON chapters(url);
+
+-- Speed up updatesView ordering by date_fetch
+CREATE INDEX IF NOT EXISTS chapters_date_fetch_index ON chapters(date_fetch DESC);
+
+-- Speed up source-based queries
+CREATE INDEX IF NOT EXISTS mangas_source_index ON mangas(source);
+
+-- Speed up excluded_scanlators composite lookup
+CREATE INDEX IF NOT EXISTS excluded_scanlators_manga_scanlator_index ON excluded_scanlators(manga_id, scanlator);

@@ -57,7 +57,7 @@ fun PreferenceScreen(
                             PreferenceGroupHeader(title = preference.title)
                         }
                     }
-                    items(preference.preferenceItems) { item ->
+                    items(preference.preferenceItems, key = { it.title }) { item ->
                         PreferenceItem(
                             item = item,
                             highlightKey = highlightKey,

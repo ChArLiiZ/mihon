@@ -238,7 +238,28 @@ class Downloader(
 
     private fun CoroutineScope.launchDownloadJob(download: Download) = launchIO {
         try {
-            downloadChapter(download)
+            var lastError: Throwable? = null
+            for (attempt in 1..CHAPTER_RETRY_COUNT) {
+                try {
+                    downloadChapter(download)
+                    lastError = null
+                    break
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    lastError = e
+                    if (attempt < CHAPTER_RETRY_COUNT) {
+                        val delayMs = CHAPTER_RETRY_BASE_DELAY_MS * (1L shl (attempt - 1))
+                        logcat(LogPriority.WARN) { "Chapter download failed (attempt $attempt/$CHAPTER_RETRY_COUNT), retrying in ${delayMs}ms: ${e.message}" }
+                        kotlinx.coroutines.delay(delayMs)
+                        // Reset pages for retry
+                        download.pages?.forEach { it.status = Page.State.Queue }
+                    }
+                }
+            }
+            if (lastError != null) {
+                throw lastError
+            }
 
             // Remove successful download from queue
             if (download.status == Download.State.DOWNLOADED) {
@@ -728,6 +749,8 @@ class Downloader(
         const val WARNING_NOTIF_TIMEOUT_MS = 30_000L
         const val CHAPTERS_PER_SOURCE_QUEUE_WARNING_THRESHOLD = 15
         private const val DOWNLOADS_QUEUED_WARNING_THRESHOLD = 30
+        private const val CHAPTER_RETRY_COUNT = 3
+        private const val CHAPTER_RETRY_BASE_DELAY_MS = 2_000L
     }
 }
 
