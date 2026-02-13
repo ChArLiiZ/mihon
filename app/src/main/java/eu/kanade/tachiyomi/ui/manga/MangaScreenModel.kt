@@ -50,8 +50,10 @@ import tachiyomi.domain.history.interactor.GetNextChapters
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -309,33 +311,104 @@ class MangaScreenModel(
         screenModelScope.launchIO {
             updateSuccessState { it.copy(isLoadingSimilar = true) }
             try {
-                // Use first genre as search query
-                val searchGenre = genres.first()
-                val result = catalogueSource.getSearchManga(1, searchGenre, catalogueSource.getFilterList())
+                // Use up to 5 genres as separate search queries
+                val searchGenres = genres.take(5)
+                val currentGenresLower = genres.map { it.lowercase().trim() }.toSet()
+                val dispatcher = Dispatchers.IO.limitedParallelism(3)
 
-                // Insert network manga to get proper IDs
-                val networkManga = result.mangas.map { sManga ->
-                    Manga.create().copy(
-                        url = sManga.url,
-                        title = sManga.title,
-                        artist = sManga.artist,
-                        author = sManga.author,
-                        thumbnailUrl = sManga.thumbnail_url,
-                        description = sManga.description,
-                        genre = sManga.genre?.split(", "),
-                        status = sManga.status.toLong(),
-                        source = state.manga.source,
-                        initialized = true,
+                // Search each genre in parallel, track which URLs appeared in which searches
+                // and their position in each search result
+                data class SearchHit(
+                    val manga: Manga,
+                    val searchIndex: Int,
+                    val positionInSearch: Int,
+                )
+
+                val allHits: List<SearchHit> = coroutineScope {
+                    searchGenres.mapIndexed { searchIdx, genre ->
+                        async(dispatcher) {
+                            try {
+                                val result = catalogueSource.getSearchManga(
+                                    1, genre, catalogueSource.getFilterList(),
+                                )
+                                result.mangas.mapIndexed { pos, sManga ->
+                                    SearchHit(
+                                        manga = Manga.create().copy(
+                                            url = sManga.url,
+                                            title = sManga.title,
+                                            artist = sManga.artist,
+                                            author = sManga.author,
+                                            thumbnailUrl = sManga.thumbnail_url,
+                                            description = sManga.description,
+                                            genre = sManga.genre?.split(", "),
+                                            status = sManga.status.toLong(),
+                                            source = state.manga.source,
+                                            initialized = true,
+                                        ),
+                                        searchIndex = searchIdx,
+                                        positionInSearch = pos,
+                                    )
+                                }
+                            } catch (e: Throwable) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
+                                logcat(LogPriority.WARN, e) {
+                                    "Failed to search similar manga for genre: $genre"
+                                }
+                                emptyList()
+                            }
+                        }
+                    }.awaitAll().flatten()
+                }
+
+                // Group by URL to deduplicate and gather stats
+                val grouped = allHits.groupBy { it.manga.url }
+
+                // Build candidate list with scoring data
+                data class Candidate(
+                    val manga: Manga,
+                    val appearCount: Int,
+                    val bestPosition: Int,
+                )
+
+                val candidates = grouped.map { (_, hits) ->
+                    Candidate(
+                        manga = hits.first().manga,
+                        appearCount = hits.size,
+                        bestPosition = hits.minOf { it.positionInSearch },
                     )
                 }
 
-                val insertedManga = mangaRepository.insertNetworkManga(networkManga)
-                val filtered = insertedManga
-                    .filter { it.id != state.manga.id && it.url != state.manga.url }
-                    .take(10)
+                // Insert all unique manga into DB to get proper IDs
+                val allUniqueManga = candidates.map { it.manga }
+                val insertedManga = mangaRepository.insertNetworkManga(allUniqueManga)
+
+                // Build URL -> inserted manga mapping
+                val urlToInserted = insertedManga.associateBy { it.url }
+
+                // Filter out current manga, then sort
+                val sorted = candidates
+                    .mapNotNull { candidate ->
+                        val inserted = urlToInserted[candidate.manga.url] ?: return@mapNotNull null
+                        if (inserted.id == state.manga.id || inserted.url == state.manga.url) {
+                            return@mapNotNull null
+                        }
+                        // Calculate genre overlap
+                        val mangaGenres = inserted.genre
+                            ?.map { it.lowercase().trim() }?.toSet() ?: emptySet()
+                        val overlapCount = currentGenresLower.intersect(mangaGenres).size
+
+                        Triple(inserted, candidate, overlapCount)
+                    }
+                    .sortedWith(
+                        compareByDescending<Triple<Manga, Candidate, Int>> { it.third } // genre overlap
+                            .thenByDescending { it.second.appearCount } // appear in more searches
+                            .thenBy { it.second.bestPosition }, // better position in source results
+                    )
+                    .map { it.first }
+                    .take(15)
 
                 updateSuccessState {
-                    it.copy(similarManga = filtered, isLoadingSimilar = false)
+                    it.copy(similarManga = sorted, isLoadingSimilar = false)
                 }
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
