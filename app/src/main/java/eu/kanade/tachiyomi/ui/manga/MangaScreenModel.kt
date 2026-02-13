@@ -299,6 +299,34 @@ class MangaScreenModel(
         }
     }
 
+    /**
+     * Normalize a manga title for deduplication.
+     * Removes bracketed content (e.g. [翻譯組], (第二季)),
+     * lowercases, and strips punctuation/spaces.
+     */
+    private fun normalizeTitle(title: String): String {
+        val bracketPattern = Regex(
+            "[\\[\\(【「（《〈〔｛『].*?[\\]\\)】」）》〉〕｝』]",
+        )
+        var normalized = bracketPattern.replace(title, "")
+        normalized = normalized.lowercase()
+        normalized = normalized.replace(Regex("[^\\p{L}\\p{N}\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}]"), "")
+        return normalized.trim()
+    }
+
+    /**
+     * Check if two normalized titles are similar enough to be considered the same manga.
+     * Returns true if they are equal, or if one contains the other
+     * and the shorter one is at least 60% of the longer one's length.
+     */
+    private fun isSimilarTitle(a: String, b: String): Boolean {
+        if (a.isEmpty() || b.isEmpty()) return false
+        if (a == b) return true
+        val longer = if (a.length >= b.length) a else b
+        val shorter = if (a.length < b.length) a else b
+        return longer.contains(shorter) && shorter.length.toDouble() / longer.length >= 0.6
+    }
+
     fun fetchSimilarManga() {
         val state = successState ?: return
         if (state.similarManga.isNotEmpty() || state.isLoadingSimilar) return
@@ -385,7 +413,11 @@ class MangaScreenModel(
                 // Build URL -> inserted manga mapping
                 val urlToInserted = insertedManga.associateBy { it.url }
 
-                // Filter out current manga, then sort
+                // Filter out current manga, then sort and deduplicate by title
+                val seenTitles = mutableSetOf<String>()
+                val currentTitleNorm = normalizeTitle(state.manga.title)
+                if (currentTitleNorm.isNotEmpty()) seenTitles.add(currentTitleNorm)
+
                 val sorted = candidates
                     .mapNotNull { candidate ->
                         val inserted = urlToInserted[candidate.manga.url] ?: return@mapNotNull null
@@ -405,6 +437,18 @@ class MangaScreenModel(
                             .thenBy { it.second.bestPosition }, // better position in source results
                     )
                     .map { it.first }
+                    .filter { manga ->
+                        // Deduplicate by normalized title
+                        val norm = normalizeTitle(manga.title)
+                        if (norm.isEmpty()) return@filter true
+                        val isDuplicate = seenTitles.any { seen -> isSimilarTitle(norm, seen) }
+                        if (!isDuplicate) {
+                            seenTitles.add(norm)
+                            true
+                        } else {
+                            false
+                        }
+                    }
                     .take(15)
 
                 updateSuccessState {
