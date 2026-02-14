@@ -13,11 +13,12 @@ class BackupCategory(
     @ProtoNumber(100) var flags: Long = 0,
     @ProtoNumber(101) var parentName: String? = null,
 ) {
-    fun toCategory(id: Long) = Category(
+    fun toCategory(id: Long, parentId: Long? = null) = Category(
         id = id,
         name = this@BackupCategory.name,
         flags = this@BackupCategory.flags,
         order = this@BackupCategory.order,
+        parentId = parentId,
     )
 }
 

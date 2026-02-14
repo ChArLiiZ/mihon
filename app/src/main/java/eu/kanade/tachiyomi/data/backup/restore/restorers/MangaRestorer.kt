@@ -297,15 +297,26 @@ class MangaRestorer(
         backupCategories: List<BackupCategory>,
     ) {
         val dbCategories = getCategories.await()
+
+        // Build composite-key map: (name, parentName) -> Category
+        // This correctly handles subcategories with the same name under different parents
+        val dbCategoriesById = dbCategories.associateBy { it.id }
+        val dbCategoriesByIdentity = dbCategories.associateBy { cat ->
+            val parentName = cat.parentId?.let { dbCategoriesById[it]?.name }
+            Pair(cat.name, parentName)
+        }
+        // Fallback: name-only lookup for backward compatibility with old backups
         val dbCategoriesByName = dbCategories.associateBy { it.name }
 
         val backupCategoriesByOrder = backupCategories.associateBy { it.order }
 
         val mangaCategoriesToUpdate = categories.mapNotNull { backupCategoryOrder ->
             backupCategoriesByOrder[backupCategoryOrder]?.let { backupCategory ->
-                dbCategoriesByName[backupCategory.name]?.let { dbCategory ->
-                    Pair(manga.id, dbCategory.id)
-                }
+                val identity = Pair(backupCategory.name, backupCategory.parentName)
+                // Try composite key first, fall back to name-only for old backups
+                val dbCategory = dbCategoriesByIdentity[identity]
+                    ?: dbCategoriesByName[backupCategory.name]
+                dbCategory?.let { Pair(manga.id, it.id) }
             }
         }
 

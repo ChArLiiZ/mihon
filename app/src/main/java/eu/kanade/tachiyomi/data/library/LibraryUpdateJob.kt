@@ -73,6 +73,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.AtomicLong
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.incrementAndFetch
 
@@ -92,6 +93,8 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get()
 
     private val notifier = LibraryUpdateNotifier(context)
+
+    private val lastNotificationTime = AtomicLong(0L)
 
     private var mangaToUpdate: List<LibraryManga> = mutableListOf()
 
@@ -245,14 +248,14 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
             mangaToUpdate.groupBy { it.manga.source }.values
                 .map { mangaInSource ->
                     async {
-                        semaphore.withPermit {
-                            mangaInSource.forEach { libraryManga ->
+                        mangaInSource.forEach { libraryManga ->
+                            semaphore.withPermit {
                                 val manga = libraryManga.manga
                                 ensureActive()
 
                                 // Don't continue to update if manga is not in library
                                 if (getManga.await(manga.id)?.favorite != true) {
-                                    return@forEach
+                                    return@withPermit
                                 }
 
                                 withUpdateNotification(
@@ -355,23 +358,39 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
         ensureActive()
 
         updatingManga.add(manga)
-        notifier.showProgressNotification(
-            updatingManga,
-            completed.load(),
-            mangaToUpdate.size,
-        )
+        val now = System.currentTimeMillis()
+        val lastTime = lastNotificationTime.load()
+        if (now - lastTime >= NOTIFICATION_THROTTLE_MS && lastNotificationTime.compareAndSet(lastTime, now)) {
+            notifier.showProgressNotification(
+                updatingManga,
+                completed.load(),
+                mangaToUpdate.size,
+            )
+        }
 
         block()
 
         ensureActive()
 
         updatingManga.remove(manga)
-        completed.incrementAndFetch()
-        notifier.showProgressNotification(
-            updatingManga,
-            completed.load(),
-            mangaToUpdate.size,
-        )
+        val currentCompleted = completed.incrementAndFetch()
+        val now2 = System.currentTimeMillis()
+        val lastTime2 = lastNotificationTime.load()
+        if (currentCompleted >= mangaToUpdate.size) {
+            // Always show final notification
+            lastNotificationTime.store(now2)
+            notifier.showProgressNotification(
+                updatingManga,
+                currentCompleted,
+                mangaToUpdate.size,
+            )
+        } else if (now2 - lastTime2 >= NOTIFICATION_THROTTLE_MS && lastNotificationTime.compareAndSet(lastTime2, now2)) {
+            notifier.showProgressNotification(
+                updatingManga,
+                currentCompleted,
+                mangaToUpdate.size,
+            )
+        }
     }
 
     /**
@@ -410,6 +429,8 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
         private const val WORK_NAME_MANUAL = "LibraryUpdate-manual"
 
         private const val ERROR_LOG_HELP_URL = "https://mihon.app/docs/guides/troubleshooting/"
+
+        private const val NOTIFICATION_THROTTLE_MS = 500L
 
         private const val MANGA_PER_SOURCE_QUEUE_WARNING_THRESHOLD = 60
 

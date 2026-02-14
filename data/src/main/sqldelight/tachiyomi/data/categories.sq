@@ -83,6 +83,11 @@ SET name = coalesce(:name, name),
     parent_id = coalesce(:parentId, parent_id)
 WHERE _id = :categoryId;
 
+updateParentId:
+UPDATE categories
+SET parent_id = :parentId
+WHERE _id = :categoryId;
+
 updateAllFlags:
 UPDATE categories SET
 flags = coalesce(?, flags);

@@ -87,9 +87,19 @@ class BackupRestorer(
         }
 
         coroutineScope {
+            // Categories must be restored first as manga restoration depends on them existing in DB
             if (options.categories) {
-                restoreCategories(backup.backupCategories)
+                ensureActive()
+                categoriesRestorer(backup.backupCategories)
+                restoreProgress += 1
+                notifier.showRestoreProgress(
+                    context.stringResource(MR.strings.categories),
+                    restoreProgress,
+                    restoreAmount,
+                    isSync,
+                )
             }
+
             if (options.appSettings) {
                 restoreAppPreferences(backup.backupPreferences, backup.backupCategories.takeIf { options.categories })
             }
@@ -105,19 +115,6 @@ class BackupRestorer(
 
             // TODO: optionally trigger online library + tracker update
         }
-    }
-
-    private fun CoroutineScope.restoreCategories(backupCategories: List<BackupCategory>) = launch {
-        ensureActive()
-        categoriesRestorer(backupCategories)
-
-        restoreProgress += 1
-        notifier.showRestoreProgress(
-            context.stringResource(MR.strings.categories),
-            restoreProgress,
-            restoreAmount,
-            isSync,
-        )
     }
 
     private fun CoroutineScope.restoreManga(
