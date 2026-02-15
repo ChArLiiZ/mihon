@@ -4,6 +4,12 @@ import android.content.Context
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.source.online.all.EHentai
+import eu.kanade.tachiyomi.source.online.all.NHentai
+import exh.log.xLogD
+import exh.source.EH_SOURCE_ID
+import exh.source.EXH_SOURCE_ID
+import exh.source.EnhancedHttpSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -58,9 +64,21 @@ class AndroidSourceManager(
                             ),
                         ),
                     )
+
+                    // EXH: Register built-in EHentai sources
+                    val ehSource = EHentai(EH_SOURCE_ID, false, context)
+                    val exhSource = EHentai(EXH_SOURCE_ID, true, context)
+                    mutableMap[EH_SOURCE_ID] = ehSource
+                    mutableMap[EXH_SOURCE_ID] = exhSource
+                    registerStubSource(StubSource.from(ehSource))
+                    registerStubSource(StubSource.from(exhSource))
+
                     extensions.forEach { extension ->
                         extension.sources.forEach {
-                            mutableMap[it.id] = it
+                            val wrappedSource = it.toInternalSource()
+                            if (wrappedSource != null) {
+                                mutableMap[it.id] = wrappedSource
+                            }
                             registerStubSource(StubSource.from(it))
                         }
                     }
@@ -78,6 +96,29 @@ class AndroidSourceManager(
                     }
                 }
         }
+    }
+
+    /**
+     * Wrap extension sources with built-in enhanced sources that add metadata support.
+     * Based on TachiyomiSY's source delegation mechanism.
+     */
+    private fun Source.toInternalSource(): Source? {
+        if (this !is HttpSource) return this
+
+        val sourceQName = this::class.qualifiedName ?: return this
+
+        // Check if this extension source should be delegated to an enhanced source
+        val matchedDelegate = DELEGATED_SOURCES.entries.firstOrNull { (key, value) ->
+            if (value.factory) {
+                sourceQName.startsWith(key)
+            } else {
+                sourceQName == key
+            }
+        }?.value ?: return this
+
+        xLogD("Delegating source: %s -> %s!", sourceQName, matchedDelegate.sourceName)
+        val enhancedSource = matchedDelegate.createEnhancedSource(this, context)
+        return EnhancedHttpSource(this, enhancedSource)
     }
 
     override fun get(sourceKey: Long): Source? {
@@ -119,5 +160,23 @@ class AndroidSourceManager(
             return it
         }
         return StubSource(id = id, lang = "", name = "")
+    }
+
+    companion object {
+        private val DELEGATED_SOURCES = listOf(
+            DelegatedSource(
+                sourceName = "NHentai",
+                originalSourceQualifiedClassName = "eu.kanade.tachiyomi.extension.all.nhentai.NHentai",
+                factory = true,
+                createEnhancedSource = { delegate, ctx -> NHentai(delegate, ctx) },
+            ),
+        ).associateBy { it.originalSourceQualifiedClassName }
+
+        data class DelegatedSource(
+            val sourceName: String,
+            val originalSourceQualifiedClassName: String,
+            val factory: Boolean = false,
+            val createEnhancedSource: (HttpSource, Context) -> HttpSource,
+        )
     }
 }
