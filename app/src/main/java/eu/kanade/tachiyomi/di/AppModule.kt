@@ -68,11 +68,50 @@ class AppModule(val app: Application) : InjektModule {
                         setPragma(db, "foreign_keys = ON")
                         setPragma(db, "journal_mode = WAL")
                         setPragma(db, "synchronous = NORMAL")
+                        // EXH: Ensure metadata tables exist (safety net if migration didn't run)
+                        ensureSearchMetadataTables(db)
                     }
                     private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
                         val cursor = db.query("PRAGMA $pragma")
                         cursor.moveToFirst()
                         cursor.close()
+                    }
+                    private fun ensureSearchMetadataTables(db: SupportSQLiteDatabase) {
+                        db.execSQL(
+                            """CREATE TABLE IF NOT EXISTS search_metadata (
+                                manga_id INTEGER NOT NULL PRIMARY KEY,
+                                uploader TEXT,
+                                extra TEXT NOT NULL,
+                                indexed_extra TEXT,
+                                extra_version INTEGER NOT NULL,
+                                FOREIGN KEY(manga_id) REFERENCES mangas (_id) ON DELETE CASCADE
+                            )""",
+                        )
+                        db.execSQL(
+                            """CREATE TABLE IF NOT EXISTS search_tags (
+                                _id INTEGER NOT NULL PRIMARY KEY,
+                                manga_id INTEGER NOT NULL,
+                                namespace TEXT,
+                                name TEXT NOT NULL,
+                                type INTEGER NOT NULL,
+                                FOREIGN KEY(manga_id) REFERENCES mangas (_id) ON DELETE CASCADE
+                            )""",
+                        )
+                        db.execSQL(
+                            """CREATE TABLE IF NOT EXISTS search_titles (
+                                _id INTEGER NOT NULL PRIMARY KEY,
+                                manga_id INTEGER NOT NULL,
+                                title TEXT NOT NULL,
+                                type INTEGER NOT NULL,
+                                FOREIGN KEY(manga_id) REFERENCES mangas (_id) ON DELETE CASCADE
+                            )""",
+                        )
+                        db.execSQL("CREATE INDEX IF NOT EXISTS search_metadata_uploader_index ON search_metadata(uploader)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS search_metadata_indexed_extra_index ON search_metadata(indexed_extra)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS search_tags_manga_id_index ON search_tags(manga_id)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS search_tags_namespace_name_index ON search_tags(namespace, name)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS search_titles_manga_id_index ON search_titles(manga_id)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS search_titles_title_index ON search_titles(title)")
                     }
                 },
             )
