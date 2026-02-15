@@ -148,6 +148,14 @@ class DomainModule : InjektModule {
         }
 
         addSingletonFactory<MangaMetadataRepository> { MangaMetadataRepositoryImpl(get()) }
+        addFactory<MetadataSource.GetMangaId> {
+            val getMangaByUrlAndSourceId: GetMangaByUrlAndSourceId = get()
+            object : MetadataSource.GetMangaId {
+                override suspend fun awaitId(url: String, sourceId: Long): Long? {
+                    return getMangaByUrlAndSourceId.await(url, sourceId)?.id
+                }
+            }
+        }
         addFactory<MetadataSource.GetFlatMetadataById> { GetFlatMetadataById(get()) }
         addFactory<MetadataSource.InsertFlatMetadata> { InsertFlatMetadata(get()) }
         addFactory { GetFlatMetadataById(get()) }

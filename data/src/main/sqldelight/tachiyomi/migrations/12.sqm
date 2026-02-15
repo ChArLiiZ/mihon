@@ -1,0 +1,39 @@
+-- SY: Create metadata tables for EH/NH sources
+
+CREATE TABLE IF NOT EXISTS search_metadata (
+    manga_id INTEGER NOT NULL PRIMARY KEY,
+    uploader TEXT,
+    extra TEXT NOT NULL,
+    indexed_extra TEXT,
+    extra_version INTEGER NOT NULL,
+    FOREIGN KEY(manga_id) REFERENCES mangas (_id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS search_metadata_uploader_index ON search_metadata(uploader);
+CREATE INDEX IF NOT EXISTS search_metadata_indexed_extra_index ON search_metadata(indexed_extra);
+
+CREATE TABLE IF NOT EXISTS search_tags (
+    _id INTEGER NOT NULL PRIMARY KEY,
+    manga_id INTEGER NOT NULL,
+    namespace TEXT,
+    name TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    FOREIGN KEY(manga_id) REFERENCES mangas (_id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS search_tags_manga_id_index ON search_tags(manga_id);
+CREATE INDEX IF NOT EXISTS search_tags_namespace_name_index ON search_tags(namespace, name);
+
+CREATE TABLE IF NOT EXISTS search_titles (
+    _id INTEGER NOT NULL PRIMARY KEY,
+    manga_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    FOREIGN KEY(manga_id) REFERENCES mangas (_id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS search_titles_manga_id_index ON search_titles(manga_id);
+CREATE INDEX IF NOT EXISTS search_titles_title_index ON search_titles(title);
