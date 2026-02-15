@@ -161,6 +161,17 @@ private fun FilterItem(filter: Filter<*>, onUpdate: () -> Unit) {
                 }
             }
         }
+        // SY -->
+        is Filter.AutoComplete -> {
+            TextItem(
+                label = filter.name,
+                value = filter.state.joinToString(","),
+            ) {
+                filter.state = it.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() }
+                onUpdate()
+            }
+        }
+        // SY <--
     }
 }
 

@@ -133,6 +133,8 @@ class MangaScreenModel(
     private val mangaRepository: MangaRepository = Injekt.get(),
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get(),
     private val sourceManager: SourceManager = Injekt.get(),
+    private val getFlatMetadataById: tachiyomi.domain.manga.interactor.GetFlatMetadataById = Injekt.get(),
+    private val getPagePreviews: eu.kanade.domain.manga.interactor.GetPagePreviews = Injekt.get(),
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
 ) : StateScreenModel<MangaScreenModel.State>(State.Loading) {
 
@@ -220,6 +222,16 @@ class MangaScreenModel(
 
         observeDownloads()
 
+        // 訂閱 metadata（EH/NH 來源）
+        screenModelScope.launchIO {
+            getFlatMetadataById.subscribe(mangaId)
+                .flowWithLifecycle(lifecycle)
+                .distinctUntilChanged()
+                .collectLatest { flatMetadata ->
+                    updateSuccessState { it.copy(flatMetadata = flatMetadata) }
+                }
+        }
+
         screenModelScope.launchIO {
             val manga = getMangaAndChapters.awaitManga(mangaId)
             val chapters = getMangaAndChapters.awaitChapters(mangaId, applyScanlatorFilter = true)
@@ -264,11 +276,55 @@ class MangaScreenModel(
 
             // Fetch latest chapter total pages
             fetchLatestChapterPageCount()
+
+            // 若來源支援 PagePreviewSource，取得頁面預覽（EH/NH）
+            fetchSourcePagePreviews()
         }
     }
 
     // Cached page list for first chapter preview (not in state to avoid serialization issues)
     private var firstChapterAllPages: List<Page> = emptyList()
+
+    /**
+     * 從 PagePreviewSource 取得頁面縮圖預覽。
+     * 僅 EH/NH 等實作 PagePreviewSource 的來源會使用。
+     */
+    private fun fetchSourcePagePreviews(page: Int = 0) {
+        val state = successState ?: return
+        screenModelScope.launchIO {
+            updateSuccessState {
+                it.copy(pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Loading)
+            }
+            val result = getPagePreviews.await(state.manga, state.source, page)
+            when (result) {
+                is eu.kanade.domain.manga.interactor.GetPagePreviews.Result.Success -> {
+                    updateSuccessState {
+                        it.copy(
+                            pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Success(
+                                pagePreviews = result.pagePreviews,
+                                hasNextPage = result.hasNextPage,
+                                pageCount = result.pageCount,
+                            ),
+                        )
+                    }
+                }
+                is eu.kanade.domain.manga.interactor.GetPagePreviews.Result.Error -> {
+                    updateSuccessState {
+                        it.copy(
+                            pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Error(result.error),
+                        )
+                    }
+                }
+                is eu.kanade.domain.manga.interactor.GetPagePreviews.Result.Unused -> {
+                    updateSuccessState {
+                        it.copy(
+                            pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Unused,
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     override fun onDispose() {
         super.onDispose()
@@ -1544,6 +1600,11 @@ class MangaScreenModel(
             // Feature 3: Similar manga
             val similarManga: List<Manga> = emptyList(),
             val isLoadingSimilar: Boolean = false,
+            // Feature 4: EH/NH metadata
+            val flatMetadata: exh.metadata.metadata.base.FlatMetadata? = null,
+            // Feature 5: Source page previews (EH/NH PagePreviewSource)
+            val pagePreviewState: eu.kanade.presentation.manga.components.PagePreviewState =
+                eu.kanade.presentation.manga.components.PagePreviewState.Unused,
         ) : State {
             val processedChapters by lazy {
                 chapters.applyFilters(manga).toList()

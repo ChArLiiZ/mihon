@@ -51,6 +51,9 @@ import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
 import eu.kanade.presentation.manga.components.FirstChapterPreviewGallery
+import eu.kanade.presentation.manga.components.PagePreviewState
+import eu.kanade.presentation.manga.components.PagePreviews
+import eu.kanade.presentation.manga.components.SearchMetadataChips
 import eu.kanade.presentation.manga.components.SimilarMangaSection
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
@@ -455,6 +458,23 @@ private fun MangaScreenSmallImpl(
                     }
 
                     item(
+                        key = MangaScreenItem.METADATA_TAGS,
+                        contentType = MangaScreenItem.METADATA_TAGS,
+                    ) {
+                        SearchMetadataChips(
+                            flatMetadata = state.flatMetadata,
+                            onTagClick = { tag ->
+                                val searchText = if (tag.namespace != null) {
+                                    "${tag.namespace}: ${tag.name}"
+                                } else {
+                                    tag.name
+                                }
+                                onTagSearch(searchText)
+                            },
+                        )
+                    }
+
+                    item(
                         key = MangaScreenItem.SIMILAR_MANGA,
                         contentType = MangaScreenItem.SIMILAR_MANGA,
                     ) {
@@ -470,18 +490,26 @@ private fun MangaScreenSmallImpl(
                         key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                         contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                     ) {
-                        FirstChapterPreviewGallery(
-                            pages = state.firstChapterPages,
-                            totalPageCount = state.firstChapterTotalPageCount,
-                            visibleCount = state.firstChapterVisibleCount,
-                            isLoading = state.isLoadingPreview,
-                            error = state.previewError,
-                            onExpand = onExpandFirstChapterPreview,
-                            onLoadMore = onLoadMorePreviewPages,
-                            onPageClick = { pageIndex ->
-                                onPreviewPageClick(state.firstChapterId, pageIndex)
-                            },
-                        )
+                        if (state.pagePreviewState !is PagePreviewState.Unused) {
+                            PagePreviews(
+                                pagePreviewState = state.pagePreviewState,
+                                onOpenPage = { page -> onPreviewPageClick(state.firstChapterId, page) },
+                                onMorePreviewsClicked = { /* No-op */ },
+                            )
+                        } else {
+                            FirstChapterPreviewGallery(
+                                pages = state.firstChapterPages,
+                                totalPageCount = state.firstChapterTotalPageCount,
+                                visibleCount = state.firstChapterVisibleCount,
+                                isLoading = state.isLoadingPreview,
+                                error = state.previewError,
+                                onExpand = onExpandFirstChapterPreview,
+                                onLoadMore = onLoadMorePreviewPages,
+                                onPageClick = { pageIndex ->
+                                    onPreviewPageClick(state.firstChapterId, pageIndex)
+                                },
+                            )
+                        }
                     }
 
                     item(
@@ -720,6 +748,17 @@ fun MangaScreenLargeImpl(
                             onCopyTagToClipboard = onCopyTagToClipboard,
                             onEditNotes = onEditNotesClicked,
                         )
+                        SearchMetadataChips(
+                            flatMetadata = state.flatMetadata,
+                            onTagClick = { tag ->
+                                val searchText = if (tag.namespace != null) {
+                                    "${tag.namespace}: ${tag.name}"
+                                } else {
+                                    tag.name
+                                }
+                                onTagSearch(searchText)
+                            },
+                        )
                     }
                 },
                 endContent = {
@@ -751,18 +790,26 @@ fun MangaScreenLargeImpl(
                                 key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                                 contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                             ) {
-                                FirstChapterPreviewGallery(
-                                    pages = state.firstChapterPages,
-                                    totalPageCount = state.firstChapterTotalPageCount,
-                                    visibleCount = state.firstChapterVisibleCount,
-                                    isLoading = state.isLoadingPreview,
-                                    error = state.previewError,
-                                    onExpand = onExpandFirstChapterPreview,
-                                    onLoadMore = onLoadMorePreviewPages,
-                                    onPageClick = { pageIndex ->
-                                        onPreviewPageClick(state.firstChapterId, pageIndex)
-                                    },
-                                )
+                                if (state.pagePreviewState !is PagePreviewState.Unused) {
+                                    PagePreviews(
+                                        pagePreviewState = state.pagePreviewState,
+                                        onOpenPage = { page -> onPreviewPageClick(state.firstChapterId, page) },
+                                        onMorePreviewsClicked = { /* No-op */ },
+                                    )
+                                } else {
+                                    FirstChapterPreviewGallery(
+                                        pages = state.firstChapterPages,
+                                        totalPageCount = state.firstChapterTotalPageCount,
+                                        visibleCount = state.firstChapterVisibleCount,
+                                        isLoading = state.isLoadingPreview,
+                                        error = state.previewError,
+                                        onExpand = onExpandFirstChapterPreview,
+                                        onLoadMore = onLoadMorePreviewPages,
+                                        onPageClick = { pageIndex ->
+                                            onPreviewPageClick(state.firstChapterId, pageIndex)
+                                        },
+                                    )
+                                }
                             }
 
                             item(
