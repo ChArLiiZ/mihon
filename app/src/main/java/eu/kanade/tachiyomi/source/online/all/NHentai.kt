@@ -60,7 +60,17 @@ class NHentai(delegate: HttpSource, val context: Context) :
 
     override suspend fun getSearchManga(page: Int, query: String, filters: FilterList): MangasPage {
         return urlImportFetchSearchMangaSuspend(context, query) {
-            super<DelegatedHttpSource>.getSearchManga(page, query, filters)
+            val result = super<DelegatedHttpSource>.getSearchManga(page, query, filters)
+            // 加載 metadata 以在列表中顯示收藏數和頁數
+            val mangasWithMeta = result.mangas.map { manga ->
+                try {
+                    val response = client.newCall(mangaDetailsRequest(manga)).awaitSuccess()
+                    parseToManga(manga, response)
+                } catch (e: Exception) {
+                    manga
+                }
+            }
+            MangasPage(mangasWithMeta, result.hasNextPage)
         }
     }
 

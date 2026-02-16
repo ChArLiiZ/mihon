@@ -91,8 +91,15 @@ class NHentaiSearchMetadata : RaisedSearchMetadata() {
             author = artist ?: manga.artist,
             genre = genres,
             status = status,
-            description = null,
+            description = buildDescription(),
         )
+    }
+
+    private fun buildDescription(): String {
+        val parts = mutableListOf<String>()
+        favoritesCount?.let { parts += "Favorited by: $it" }
+        if (pageImageTypes.isNotEmpty()) parts += "Pages: ${pageImageTypes.size}"
+        return parts.joinToString("\n")
     }
 
     override fun getExtraInfoPairs(context: Context): List<Pair<String, String>> {

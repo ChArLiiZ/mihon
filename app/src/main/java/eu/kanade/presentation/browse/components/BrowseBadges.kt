@@ -37,9 +37,11 @@ internal fun ReadLaterBadge(enabled: Boolean) {
 
 @Composable
 internal fun NHentaiMetadataBadges(manga: Manga) {
-    val description = manga.description ?: return
+    val description = manga.description
 
-    // 從 description 解析頁數和收藏數
+    if (description == null) return
+
+    // 从 description 解析页数和收藏数
     val pageCountMatch = Regex("""Pages:\s*(\d+)""").find(description)
     val favoritesMatch = Regex("""Favorited by:\s*(\d+)""").find(description)
 
@@ -48,8 +50,10 @@ internal fun NHentaiMetadataBadges(manga: Manga) {
     Row {
         pageCountMatch?.groupValues?.get(1)?.let { pageCount ->
             Badge(
+                imageVector = Icons.Outlined.FilterNone,
                 text = pageCount,
                 color = MaterialTheme.colorScheme.secondary,
+                iconColor = MaterialTheme.colorScheme.onSecondary,
                 textColor = MaterialTheme.colorScheme.onSecondary,
             )
             if (favoritesMatch != null) {
@@ -59,8 +63,10 @@ internal fun NHentaiMetadataBadges(manga: Manga) {
 
         favoritesMatch?.groupValues?.get(1)?.let { favorites ->
             Badge(
+                imageVector = Icons.Outlined.Favorite,
                 text = formatFavorites(favorites.toLongOrNull() ?: 0),
                 color = MaterialTheme.colorScheme.error,
+                iconColor = MaterialTheme.colorScheme.onError,
                 textColor = MaterialTheme.colorScheme.onError,
             )
         }

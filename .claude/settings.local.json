@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(browse\\): enhance source browsing with metadata badges and improved tag search\n\n- Fix NHentai tag search by removing namespace prefix for direct tag name search\n- Add Read Later badge to all browse views \\(grid, list, global search\\)\n- Add NHentaiMetadataBadges component to display page count and favorites count\n- Display metadata badges \\(pages and favorites\\) on manga covers in browse views\n- Improve visual feedback with color-coded badges for different metadata types\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nNHentai: extract page count and favorites in browse listings\n\nParse page count and favorites count from gallery captions in search/browse results and store them in description field. This enables the main app to display these metadata badges on manga covers without requiring additional API calls.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(./gradlew assemblePreview:*)",
+      "Bash(./gradlew assembleRelease:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(browse\\): correct Badge component usage in NHentaiMetadataBadges\n\nRemove imageVector parameters from text badges as Badge component only supports either text or icon, not both. This fixes compilation error while maintaining the display of page count and favorites count.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(curl:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nNHentai: extract page count from gallery captions in listings\n\nParse page count directly from the caption text in search/browse results \\(format: \"English 25 pages\"\\). Store in description field to enable immediate display of page count badges without requiring detail page navigation.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nNHentai: add multiple fallback methods for page count extraction\n\nTry extracting page count from:\n1. div.caption text \\(e.g. \"English 25 pages\"\\)\n2. All element text as fallback\n3. data-tags attribute if available\n\nThis ensures page count is captured regardless of HTML structure variations.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
