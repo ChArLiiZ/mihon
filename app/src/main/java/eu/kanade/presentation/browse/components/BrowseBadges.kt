@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.shape.RectangleShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import tachiyomi.domain.manga.model.Manga
@@ -47,7 +47,7 @@ private fun IconBadge(
     imageVector: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.secondary,
-    iconColor: Color = MaterialTheme.colorScheme.onSecondary,
+    iconColor: Color = MaterialTheme.colorScheme.secondary,
 ) {
     Row(
         modifier = modifier
@@ -111,12 +111,12 @@ private fun TextBadge(
     ) {
         Icon(
             imageVector = icon,
-            tint = MaterialTheme.colorScheme.onSecondary,
+            tint = color,
             contentDescription = null,
         )
         Text(
             text = text,
-            color = MaterialTheme.colorScheme.onSecondary,
+            color = color,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             style = MaterialTheme.typography.bodySmall,
