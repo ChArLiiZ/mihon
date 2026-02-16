@@ -49,10 +49,8 @@ internal fun NHentaiMetadataBadges(manga: Manga) {
         pageCountMatch?.groupValues?.get(1)?.let { pageCount ->
             Badge(
                 text = pageCount,
-                imageVector = Icons.Outlined.FilterNone,
                 color = MaterialTheme.colorScheme.secondary,
                 textColor = MaterialTheme.colorScheme.onSecondary,
-                iconColor = MaterialTheme.colorScheme.onSecondary,
             )
             if (favoritesMatch != null) {
                 Spacer(modifier = Modifier.width(4.dp))
@@ -62,10 +60,8 @@ internal fun NHentaiMetadataBadges(manga: Manga) {
         favoritesMatch?.groupValues?.get(1)?.let { favorites ->
             Badge(
                 text = formatFavorites(favorites.toLongOrNull() ?: 0),
-                imageVector = Icons.Outlined.Favorite,
                 color = MaterialTheme.colorScheme.error,
                 textColor = MaterialTheme.colorScheme.onError,
-                iconColor = MaterialTheme.colorScheme.onError,
             )
         }
     }
