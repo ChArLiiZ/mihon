@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CollectionsBookmark
@@ -14,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -70,26 +72,39 @@ internal fun NHentaiMetadataBadges(manga: Manga) {
     if (description == null) return
 
     // 从 description 解析页数和收藏数
-    val pageCountMatch = Regex("""Pages:\s*(\d+)""").find(description)
-    val favoritesMatch = Regex("""Favorited by:\s*(\d+)""").find(description)
+    // 处理可能的多行格式
+    val lines = description.split("\n")
+    var pageCount: String? = null
+    var favorites: String? = null
 
-    if (pageCountMatch == null && favoritesMatch == null) return
+    for (line in lines) {
+        if (pageCount == null) {
+            val pageMatch = Regex("""Pages:\s*(\d+)""").find(line)
+            pageMatch?.groupValues?.get(1)?.let { pageCount = it }
+        }
+        if (favorites == null) {
+            val favMatch = Regex("""Favorited by:\s*(\d+)""").find(line)
+            favMatch?.groupValues?.get(1)?.let { favorites = it }
+        }
+    }
+
+    if (pageCount == null && favorites == null) return
 
     Row {
-        pageCountMatch?.groupValues?.get(1)?.let { pageCount ->
+        pageCount?.let { count ->
             TextBadge(
-                text = pageCount,
+                text = count,
                 icon = Icons.Outlined.FilterNone,
                 color = MaterialTheme.colorScheme.secondary,
             )
-            if (favoritesMatch != null) {
+            if (favorites != null) {
                 Spacer(modifier = Modifier.width(4.dp))
             }
         }
 
-        favoritesMatch?.groupValues?.get(1)?.let { favorites ->
+        favorites?.let { favs ->
             TextBadge(
-                text = formatFavorites(favorites.toLongOrNull() ?: 0),
+                text = formatFavorites(favs.toLongOrNull() ?: 0),
                 icon = Icons.Outlined.Favorite,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -108,15 +123,18 @@ private fun TextBadge(
             .clip(RectangleShape)
             .background(color)
             .padding(horizontal = 3.dp, vertical = 1.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
-            tint = color,
+            tint = MaterialTheme.colorScheme.onSecondary,
             contentDescription = null,
+            modifier = Modifier.size(14.dp),
         )
+        Spacer(modifier = Modifier.width(2.dp))
         Text(
             text = text,
-            color = color,
+            color = MaterialTheme.colorScheme.onSecondary,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             style = MaterialTheme.typography.bodySmall,
