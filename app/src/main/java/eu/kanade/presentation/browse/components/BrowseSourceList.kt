@@ -66,6 +66,8 @@ private fun BrowseSourceListItem(
         coverAlpha = if (manga.favorite) CommonMangaItemDefaults.BrowseFavoriteCoverAlpha else 1f,
         badge = {
             InLibraryBadge(enabled = manga.favorite)
+            ReadLaterBadge(enabled = manga.readLater && !manga.favorite)
+            NHentaiMetadataBadges(manga = manga)
         },
         onLongClick = onLongClick,
         onClick = onClick,

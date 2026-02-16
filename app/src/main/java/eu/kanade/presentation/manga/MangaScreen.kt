@@ -464,12 +464,8 @@ private fun MangaScreenSmallImpl(
                         SearchMetadataChips(
                             flatMetadata = state.flatMetadata,
                             onTagClick = { tag ->
-                                val searchText = if (tag.namespace != null) {
-                                    "${tag.namespace}: ${tag.name}"
-                                } else {
-                                    tag.name
-                                }
-                                onTagSearch(searchText)
+                                // 直接搜尋標籤名稱，不包含 namespace
+                                onTagSearch(tag.name)
                             },
                         )
                     }
@@ -751,12 +747,8 @@ fun MangaScreenLargeImpl(
                         SearchMetadataChips(
                             flatMetadata = state.flatMetadata,
                             onTagClick = { tag ->
-                                val searchText = if (tag.namespace != null) {
-                                    "${tag.namespace}: ${tag.name}"
-                                } else {
-                                    tag.name
-                                }
-                                onTagSearch(searchText)
+                                // 直接搜尋標籤名稱，不包含 namespace
+                                onTagSearch(tag.name)
                             },
                         )
                     }

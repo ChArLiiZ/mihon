@@ -73,6 +73,10 @@ private fun BrowseSourceComfortableGridItem(
         coverAlpha = if (manga.favorite) CommonMangaItemDefaults.BrowseFavoriteCoverAlpha else 1f,
         coverBadgeStart = {
             InLibraryBadge(enabled = manga.favorite)
+            ReadLaterBadge(enabled = manga.readLater && !manga.favorite)
+        },
+        coverBadgeEnd = {
+            NHentaiMetadataBadges(manga = manga)
         },
         onLongClick = onLongClick,
         onClick = onClick,

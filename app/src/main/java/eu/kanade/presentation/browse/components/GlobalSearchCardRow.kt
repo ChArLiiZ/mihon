@@ -42,9 +42,7 @@ fun GlobalSearchCardRow(
         items(titles, key = { it.id }) {
             val title by getManga(it)
             MangaItem(
-                title = title.title,
-                cover = title.asMangaCover(),
-                isFavorite = title.favorite,
+                manga = title,
                 onClick = { onClick(title) },
                 onLongClick = { onLongClick(title) },
             )
@@ -54,21 +52,23 @@ fun GlobalSearchCardRow(
 
 @Composable
 private fun MangaItem(
-    title: String,
-    cover: MangaCover,
-    isFavorite: Boolean,
+    manga: Manga,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
     Box(modifier = Modifier.width(96.dp)) {
         MangaComfortableGridItem(
-            title = title,
+            title = manga.title,
             titleMaxLines = 3,
-            coverData = cover,
+            coverData = manga.asMangaCover(),
             coverBadgeStart = {
-                InLibraryBadge(enabled = isFavorite)
+                InLibraryBadge(enabled = manga.favorite)
+                ReadLaterBadge(enabled = manga.readLater && !manga.favorite)
             },
-            coverAlpha = if (isFavorite) CommonMangaItemDefaults.BrowseFavoriteCoverAlpha else 1f,
+            coverBadgeEnd = {
+                NHentaiMetadataBadges(manga = manga)
+            },
+            coverAlpha = if (manga.favorite) CommonMangaItemDefaults.BrowseFavoriteCoverAlpha else 1f,
             onClick = onClick,
             onLongClick = onLongClick,
         )
