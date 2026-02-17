@@ -45,11 +45,15 @@ class CreateBackupScreen : Screen() {
             contract = ActivityResultContracts.CreateDocument("application/*"),
         ) {
             if (it != null) {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                } catch (_: SecurityException) {
+                    // Some document providers don't grant persistable permissions for create requests.
+                }
                 model.createBackup(context, it)
                 navigator.pop()
             }

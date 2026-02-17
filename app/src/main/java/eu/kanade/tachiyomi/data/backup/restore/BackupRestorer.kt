@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import eu.kanade.tachiyomi.data.backup.BackupDecoder
 import eu.kanade.tachiyomi.data.backup.BackupNotifier
+import eu.kanade.tachiyomi.data.backup.models.Backup
 import eu.kanade.tachiyomi.data.backup.models.BackupCategory
 import eu.kanade.tachiyomi.data.backup.models.BackupExtensionRepos
 import eu.kanade.tachiyomi.data.backup.models.BackupManga
@@ -22,8 +23,10 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Collections
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicInteger
 
 class BackupRestorer(
     private val context: Context,
@@ -36,9 +39,9 @@ class BackupRestorer(
     private val mangaRestorer: MangaRestorer = MangaRestorer(),
 ) {
 
-    private var restoreAmount = 0
-    private var restoreProgress = 0
-    private val errors = mutableListOf<Pair<Date, String>>()
+    private val restoreAmount = AtomicInteger(0)
+    private val restoreProgress = AtomicInteger(0)
+    private val errors = Collections.synchronizedList(mutableListOf<Pair<Date, String>>())
 
     /**
      * Mapping of source ID to source name from backup data
@@ -46,17 +49,24 @@ class BackupRestorer(
     private var sourceMapping: Map<Long, String> = emptyMap()
 
     suspend fun restore(uri: Uri, options: RestoreOptions) {
+        restoreAmount.set(0)
+        restoreProgress.set(0)
+        synchronized(errors) {
+            errors.clear()
+        }
+
         val startTime = System.currentTimeMillis()
 
         restoreFromFile(uri, options)
 
         val time = System.currentTimeMillis() - startTime
+        val errorCount = synchronized(errors) { errors.size }
 
         val logFile = writeErrorLog()
 
         notifier.showRestoreComplete(
             time,
-            errors.size,
+            errorCount,
             logFile.parent,
             logFile.name,
             isSync,
@@ -70,33 +80,16 @@ class BackupRestorer(
         val backupMaps = backup.backupSources
         sourceMapping = backupMaps.associate { it.sourceId to it.name }
 
-        if (options.libraryEntries) {
-            restoreAmount += backup.backupManga.size
-        }
-        if (options.categories) {
-            restoreAmount += 1
-        }
-        if (options.appSettings) {
-            restoreAmount += 1
-        }
-        if (options.extensionRepoSettings) {
-            restoreAmount += backup.backupExtensionRepo.size
-        }
-        if (options.sourceSettings) {
-            restoreAmount += 1
-        }
+        val amount = buildRestoreAmount(backup, options)
+        restoreAmount.set(amount)
 
         coroutineScope {
             // Categories must be restored first as manga restoration depends on them existing in DB
             if (options.categories) {
                 ensureActive()
                 categoriesRestorer(backup.backupCategories)
-                restoreProgress += 1
-                notifier.showRestoreProgress(
+                showProgress(
                     context.stringResource(MR.strings.categories),
-                    restoreProgress,
-                    restoreAmount,
-                    isSync,
                 )
             }
 
@@ -132,8 +125,7 @@ class BackupRestorer(
                     errors.add(Date() to "${it.title} [$sourceName]: ${e.message}")
                 }
 
-                restoreProgress += 1
-                notifier.showRestoreProgress(it.title, restoreProgress, restoreAmount, isSync)
+                showProgress(it.title)
             }
     }
 
@@ -147,12 +139,8 @@ class BackupRestorer(
             categories,
         )
 
-        restoreProgress += 1
-        notifier.showRestoreProgress(
+        showProgress(
             context.stringResource(MR.strings.app_settings),
-            restoreProgress,
-            restoreAmount,
-            isSync,
         )
     }
 
@@ -160,12 +148,8 @@ class BackupRestorer(
         ensureActive()
         preferenceRestorer.restoreSource(preferences)
 
-        restoreProgress += 1
-        notifier.showRestoreProgress(
+        showProgress(
             context.stringResource(MR.strings.source_settings),
-            restoreProgress,
-            restoreAmount,
-            isSync,
         )
     }
 
@@ -182,24 +166,21 @@ class BackupRestorer(
                     errors.add(Date() to "Error Adding Repo: ${it.name} : ${e.message}")
                 }
 
-                restoreProgress += 1
-                notifier.showRestoreProgress(
+                showProgress(
                     context.stringResource(MR.strings.extensionRepo_settings),
-                    restoreProgress,
-                    restoreAmount,
-                    isSync,
                 )
             }
     }
 
     private fun writeErrorLog(): File {
         try {
-            if (errors.isNotEmpty()) {
+            val snapshot = synchronized(errors) { errors.toList() }
+            if (snapshot.isNotEmpty()) {
                 val file = context.createFileInCacheDir("mihon_restore_error.txt")
                 val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
 
                 file.bufferedWriter().use { out ->
-                    errors.forEach { (date, message) ->
+                    snapshot.forEach { (date, message) ->
                         out.write("[${sdf.format(date)}] $message\n")
                     }
                 }
@@ -209,5 +190,23 @@ class BackupRestorer(
             // Empty
         }
         return File("")
+    }
+
+    private fun buildRestoreAmount(
+        backup: Backup,
+        options: RestoreOptions,
+    ): Int {
+        var amount = 0
+        if (options.libraryEntries) amount += backup.backupManga.size
+        if (options.categories) amount += 1
+        if (options.appSettings) amount += 1
+        if (options.extensionRepoSettings) amount += backup.backupExtensionRepo.size
+        if (options.sourceSettings) amount += 1
+        return amount
+    }
+
+    private fun showProgress(content: String) {
+        val progress = restoreProgress.incrementAndGet()
+        notifier.showRestoreProgress(content, progress, restoreAmount.get(), isSync)
     }
 }

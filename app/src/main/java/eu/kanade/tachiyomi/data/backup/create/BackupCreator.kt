@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.BuildConfig
-import eu.kanade.tachiyomi.data.backup.BackupFileValidator
 import eu.kanade.tachiyomi.data.backup.create.creators.CategoriesBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.ExtensionRepoBackupCreator
 import eu.kanade.tachiyomi.data.backup.create.creators.MangaBackupCreator
@@ -17,6 +16,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupManga
 import eu.kanade.tachiyomi.data.backup.models.BackupPreference
 import eu.kanade.tachiyomi.data.backup.models.BackupSource
 import eu.kanade.tachiyomi.data.backup.models.BackupSourcePreferences
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.protobuf.ProtoBuf
 import logcat.LogPriority
 import okio.buffer
@@ -93,6 +93,7 @@ class BackupCreator(
             if (byteArray.isEmpty()) {
                 throw IllegalStateException(context.stringResource(MR.strings.empty_backup_error))
             }
+            validateBackupPayload(byteArray)
 
             file.openOutputStream()
                 .also {
@@ -104,9 +105,6 @@ class BackupCreator(
                 }
             val fileUri = file.uri
 
-            // Make sure it's a valid backup file
-            BackupFileValidator(context).validate(fileUri)
-
             if (isAutoBackup) {
                 backupPreferences.lastAutoBackupTimestamp().set(Instant.now().toEpochMilli())
             }
@@ -116,6 +114,14 @@ class BackupCreator(
             logcat(LogPriority.ERROR, e)
             file?.delete()
             throw e
+        }
+    }
+
+    private fun validateBackupPayload(payload: ByteArray) {
+        try {
+            parser.decodeFromByteArray(Backup.serializer(), payload)
+        } catch (e: SerializationException) {
+            throw IllegalStateException(context.stringResource(MR.strings.invalid_backup_file_unknown), e)
         }
     }
 
