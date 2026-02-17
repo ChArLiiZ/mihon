@@ -123,6 +123,20 @@ class EHentai(
     // Simple in-memory cache for parent gallery lookups (replaces EHentaiUpdateHelper.parentLookupTable)
     private val parentLookupTable = ConcurrentHashMap<Int, GalleryEntry>()
 
+    // Cache for search pagination (Page -> Next GID)
+    private val nextPageCache = ConcurrentHashMap<String, String>()
+
+    private fun getCacheKey(query: String, page: Int, filters: FilterList): String {
+        return "$query|$page|${filters.hashCode()}"
+    }
+    
+
+
+
+    
+
+    
+
     /**
      * Gallery list entry
      */
@@ -244,9 +258,13 @@ class EHentai(
             select(".searchnav >div > a")
                 .any { "next" in it.attr("href") }
         }
+        
+        // Force next page if we have results. Safe check for empty list.
+        val forcedHasNextPage = hasNextPage || parsedMangas.isNotEmpty()
+
         val nextPage = if (parsedLocation?.pathSegments?.contains("toplist.php") == true) {
             ((parsedLocation.queryParameter("p")?.toLong() ?: 0) + 2).takeIf { it <= 200 }
-        } else if (hasNextPage) {
+        } else if (forcedHasNextPage && parsedMangas.isNotEmpty()) {
             parsedMangas.let { if (isReversed) it.first() else it.last() }
                 .manga
                 .url
@@ -561,7 +579,12 @@ class EHentai(
 
     override suspend fun getSearchManga(page: Int, query: String, filters: FilterList): MangasPage {
         return urlImportFetchSearchMangaSuspend(context, query) {
-            super<HttpSource>.getSearchManga(page, query, filters).checkValid()
+            val result = super<HttpSource>.getSearchManga(page, query, filters)
+            
+            if (result is MetadataMangasPage && result.nextKey != null) {
+                 nextPageCache[getCacheKey(query, page + 1, filters)] = result.nextKey.toString()
+            }
+            result
         }
     }
 
@@ -605,9 +628,14 @@ class EHentai(
             }
         }
 
+        val nextGid = if (page > 1) nextPageCache[getCacheKey(query, page, filters)] else null
+        if (nextGid != null) {
+            uri.appendQueryParameter("next", nextGid)
+        }
+
         return exGet(
             url = uri.toString(),
-            next = if (!isReverseFilterEnabled) page else null,
+            next = if (nextGid == null && !isReverseFilterEnabled) page else null,
             prev = if (isReverseFilterEnabled) page else null,
         )
     }

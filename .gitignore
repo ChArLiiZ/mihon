@@ -17,3 +17,5 @@ local.properties
 
 # Example codes
 example codes/*
+
+*.code-workspace

@@ -58,36 +58,18 @@ class NHentai(delegate: HttpSource, val context: Context) :
             super<DelegatedHttpSource>.fetchSearchManga(page, query, filters)
         }
 
-    override val name: String
-        get() = delegate.name + " (Fixed)"
-
     override suspend fun getSearchManga(page: Int, query: String, filters: FilterList): MangasPage {
         return urlImportFetchSearchMangaSuspend(context, query) {
-            val original = super<DelegatedHttpSource>.getSearchManga(page, query, filters)
-            if (original.mangas.isNotEmpty() && !original.hasNextPage) {
-                original.copy(hasNextPage = true)
-            } else {
-                original
-            }
+            super<DelegatedHttpSource>.getSearchManga(page, query, filters)
         }
     }
 
     override suspend fun getPopularManga(page: Int): MangasPage {
-        val original = super<DelegatedHttpSource>.getPopularManga(page)
-        return if (original.mangas.isNotEmpty() && !original.hasNextPage) {
-            original.copy(hasNextPage = true)
-        } else {
-            original
-        }
+        return super<DelegatedHttpSource>.getPopularManga(page)
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
-        val original = super<DelegatedHttpSource>.getLatestUpdates(page)
-        return if (original.mangas.isNotEmpty() && !original.hasNextPage) {
-            original.copy(hasNextPage = true)
-        } else {
-            original
-        }
+         return super<DelegatedHttpSource>.getLatestUpdates(page)
     }
 
     override suspend fun getMangaDetails(manga: SManga): SManga {
