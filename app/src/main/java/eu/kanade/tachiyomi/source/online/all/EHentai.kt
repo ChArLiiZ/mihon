@@ -333,33 +333,55 @@ class EHentai(
         )
     }
 
-    override suspend fun getChapterList(manga: SManga): List<SChapter> = getChapterList(manga) {}
+    override suspend fun getChapterList(manga: SManga): List<SChapter> {
+        // Simple approach: treat the entire gallery as a single chapter
+        // This matches how the official EHentai extension works
+        return listOf(
+            SChapter(
+                url = manga.url,
+                name = "Gallery",
+                chapter_number = 1f,
+            ),
+        )
+    }
 
-    suspend fun getChapterList(manga: SManga, throttleFunc: suspend () -> Unit): List<SChapter> {
+    suspend fun getChapterListWithVersions(manga: SManga, throttleFunc: suspend () -> Unit): List<SChapter> {
         // Pull all the way to the root gallery
         // We can't do this with RxJava or we run into stack overflows on shit like this:
         //   https://exhentai.org/g/1073061/f9345f1c12/
         var url = manga.url
         var doc: Document
 
+        this@EHentai.xLogD("getChapterList called for manga: %s, url: %s", manga.title, url)
+
         while (true) {
             val gid = EHentaiSearchMetadata.galleryId(url).toInt()
             val cachedParent = parentLookupTable[gid]
             if (cachedParent == null) {
                 throttleFunc()
+                this@EHentai.xLogD("Fetching gallery page: %s", baseUrl + url)
                 doc = client.newCall(exGet(baseUrl + url)).awaitSuccess().asJsoup()
 
-                val parentLink = doc.select("#gdd .gdt1").find { el ->
+                val parentElement = doc.select("#gdd .gdt1").find { el ->
                     el.text().lowercase() == "parent:"
-                }!!.nextElementSibling()!!.selectFirst("a")?.attr("href")
+                }
+
+                if (parentElement == null) {
+                    this@EHentai.xLogD("No parent element found, this is root gallery")
+                    break
+                }
+
+                val parentLink = parentElement.nextElementSibling()?.selectFirst("a")?.attr("href")
 
                 if (parentLink != null) {
+                    this@EHentai.xLogD("Found parent link: %s", parentLink)
                     parentLookupTable[gid] = GalleryEntry(
                         EHentaiSearchMetadata.galleryId(parentLink),
                         EHentaiSearchMetadata.galleryToken(parentLink),
                     )
                     url = EHentaiSearchMetadata.normalizeUrl(parentLink)
                 } else {
+                    this@EHentai.xLogD("Parent element exists but no link found")
                     break
                 }
             } else {
@@ -371,49 +393,76 @@ class EHentai(
             }
         }
         val newDisplay = doc.select("#gnd a")
+        this@EHentai.xLogD("Found %d newer versions", newDisplay.size)
+
         // Build chapter for root gallery
         val location = doc.location()
-        val self = SChapter.create().apply {
-            url = EHentaiSearchMetadata.normalizeUrl(location)
-            name = "v1: " + doc.selectFirst("#gn")!!.text()
-            chapter_number = 1f
-            date_upload = ZonedDateTime.parse(
-                doc.select("#gdd .gdt1").find { el ->
-                    el.text().lowercase() == "posted:"
-                }!!.nextElementSibling()!!.text(),
-                MetadataUtil.EX_DATE_FORMAT.withZone(ZoneOffset.UTC),
-            )!!.toInstant().toEpochMilli()
-            scanlator = EHentaiSearchMetadata.galleryId(location)
+        this@EHentai.xLogD("Building chapter for location: %s", location)
+
+        val titleElement = doc.selectFirst("#gn")
+        if (titleElement == null) {
+            this@EHentai.xLogD("ERROR: Cannot find #gn element!")
+            throw Exception("Cannot find gallery title element")
         }
+
+        val postedElement = doc.select("#gdd .gdt1").find { el ->
+            el.text().lowercase() == "posted:"
+        }?.nextElementSibling()
+
+        if (postedElement == null) {
+            this@EHentai.xLogD("ERROR: Cannot find posted date element!")
+            throw Exception("Cannot find posted date element")
+        }
+
+        val self = SChapter(
+            url = EHentaiSearchMetadata.normalizeUrl(location),
+            name = "v1: " + titleElement.text(),
+            chapter_number = 1f,
+            date_upload = ZonedDateTime.parse(
+                postedElement.text(),
+                MetadataUtil.EX_DATE_FORMAT.withZone(ZoneOffset.UTC),
+            )!!.toInstant().toEpochMilli(),
+            scanlator = EHentaiSearchMetadata.galleryId(location),
+        )
+
+        this@EHentai.xLogD("Created root chapter: %s", self.name)
         // Build and append the rest of the galleries
-        return if (DebugToggles.INCLUDE_ONLY_ROOT_WHEN_LOADING_EXH_VERSIONS.enabled) {
+        val result = if (DebugToggles.INCLUDE_ONLY_ROOT_WHEN_LOADING_EXH_VERSIONS.enabled) {
+            this@EHentai.xLogD("Debug mode: Only returning root chapter")
             listOf(self)
         } else {
-            newDisplay.mapIndexed { index, newGallery ->
+            val otherChapters = newDisplay.mapIndexed { index, newGallery ->
                 val link = newGallery.attr("href")
                 val name = newGallery.text()
                 val posted = (newGallery.nextSibling() as TextNode).text().removePrefix(", added ")
-                SChapter.create().apply {
-                    url = EHentaiSearchMetadata.normalizeUrl(link)
-                    this.name = "v${index + 2}: $name"
-                    chapter_number = index + 2f
+                this@EHentai.xLogD("Creating chapter v%d: %s", index + 2, name)
+                SChapter(
+                    url = EHentaiSearchMetadata.normalizeUrl(link),
+                    name = "v${index + 2}: $name",
+                    chapter_number = index + 2f,
                     date_upload = ZonedDateTime.parse(
                         posted,
                         MetadataUtil.EX_DATE_FORMAT.withZone(ZoneOffset.UTC),
-                    ).toInstant().toEpochMilli()
-                    scanlator = EHentaiSearchMetadata.galleryId(link)
-                }
+                    ).toInstant().toEpochMilli(),
+                    scanlator = EHentaiSearchMetadata.galleryId(link),
+                )
             }.reversed() + self
+            otherChapters
         }
+
+        this@EHentai.xLogD("getChapterList returning %d chapters", result.size)
+        return result
     }
 
     @Deprecated("Use the 1.x API instead", replaceWith = ReplaceWith("getChapterList"))
     @Suppress("DEPRECATION")
-    override fun fetchChapterList(manga: SManga) = fetchChapterList(manga) {}
+    override fun fetchChapterList(manga: SManga) = runAsObservable {
+        getChapterList(manga)
+    }
 
-    @Deprecated("Use the 1.x API instead", replaceWith = ReplaceWith("getChapterList"))
+    @Deprecated("Use the 1.x API instead", replaceWith = ReplaceWith("getChapterListWithVersions"))
     fun fetchChapterList(manga: SManga, throttleFunc: suspend () -> Unit) = runAsObservable {
-        getChapterList(manga, throttleFunc)
+        getChapterListWithVersions(manga, throttleFunc)
     }
 
     @Deprecated("Use the 1.x API instead", replaceWith = ReplaceWith("getPageList"))

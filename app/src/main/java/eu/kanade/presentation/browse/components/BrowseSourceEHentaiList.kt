@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -107,13 +108,32 @@ fun BrowseSourceEHentaiListItem(
         Row(
             modifier = Modifier.height(120.dp).padding(8.dp),
         ) {
-            MangaCover.Book(
-                data = manga,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(80.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-            )
+            Box {
+                val colorFilter = remember(manga.favorite, manga.readLater) {
+                    if (manga.favorite || manga.readLater) {
+                        androidx.compose.ui.graphics.ColorFilter.colorMatrix(
+                            androidx.compose.ui.graphics.ColorMatrix().apply {
+                                setToSaturation(0f)
+                            }
+                        )
+                    } else {
+                        null
+                    }
+                }
+                
+                MangaCover.Book(
+                    data = manga,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(80.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    colorFilter = colorFilter,
+                )
+                Column(modifier = Modifier.padding(4.dp)) {
+                    InLibraryBadge(enabled = manga.favorite)
+                    ReadLaterBadge(enabled = manga.readLater && !manga.favorite)
+                }
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 

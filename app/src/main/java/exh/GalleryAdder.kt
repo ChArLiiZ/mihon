@@ -157,7 +157,7 @@ class GalleryAdder(
             try {
                 val chapterList = retry(retry) {
                     if (source is EHentai) {
-                        source.getChapterList(manga.toSManga(), throttleFunc)
+                        source.getChapterListWithVersions(manga.toSManga(), throttleFunc)
                     } else {
                         source.getChapterList(manga.toSManga())
                     }

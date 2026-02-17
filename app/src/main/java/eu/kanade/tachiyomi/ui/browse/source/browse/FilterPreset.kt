@@ -86,6 +86,12 @@ sealed class FilterData {
                     name = filter.name,
                     filters = filter.state.filterIsInstance<Filter<*>>().map { fromFilter(it) },
                 )
+                // SY -->
+                is Filter.AutoComplete -> AutoCompleteData(
+                    name = filter.name,
+                    state = filter.state,
+                )
+                // SY <--
                 else -> Header(filter.name)
             }
         }
@@ -134,8 +140,19 @@ sealed class FilterData {
                     s is GroupData && t is Filter.Group<*> -> {
                         applyStates(s.filters, t.state.filterIsInstance<Filter<*>>())
                     }
+                    // SY -->
+                    s is AutoCompleteData && t is Filter.AutoComplete -> t.state = s.state
+                    // SY <--
                 }
             }
         }
     }
+
+    // SY -->
+    @Serializable
+    data class AutoCompleteData(
+        override val name: String,
+        val state: List<String>,
+    ) : FilterData()
+    // SY <--
 }

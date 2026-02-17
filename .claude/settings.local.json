@@ -12,7 +12,8 @@
       "Bash(curl:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nNHentai: extract page count from gallery captions in listings\n\nParse page count directly from the caption text in search/browse results \\(format: \"English 25 pages\"\\). Store in description field to enable immediate display of page count badges without requiring detail page navigation.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nNHentai: add multiple fallback methods for page count extraction\n\nTry extracting page count from:\n1. div.caption text \\(e.g. \"English 25 pages\"\\)\n2. All element text as fallback\n3. data-tags attribute if available\n\nThis ensures page count is captured regardless of HTML structure variations.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(./gradlew :app:compilePreviewKotlin:*)"
+      "Bash(./gradlew :app:compilePreviewKotlin:*)",
+      "Bash(./gradlew :app:assemblePreview:*)"
     ]
   }
 }

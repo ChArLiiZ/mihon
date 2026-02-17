@@ -26,6 +26,7 @@ enum class MangaCover(val ratio: Float) {
         modifier: Modifier = Modifier,
         contentDescription: String = "",
         shape: Shape = MaterialTheme.shapes.extraSmall,
+        colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
         onClick: (() -> Unit)? = null,
     ) {
         AsyncImage(
@@ -46,6 +47,7 @@ enum class MangaCover(val ratio: Float) {
                         Modifier
                     },
                 ),
+            colorFilter = colorFilter,
             contentScale = ContentScale.Crop,
         )
     }

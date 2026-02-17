@@ -2,17 +2,22 @@ package eu.kanade.presentation.manga.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,14 +26,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import eu.kanade.domain.manga.model.PagePreview
+import eu.kanade.presentation.manga.MangaScreenItem
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import tachiyomi.presentation.core.components.material.padding
 import kotlin.math.floor
 
 /**
@@ -45,57 +53,21 @@ sealed class PagePreviewState {
     data class Error(val error: Throwable) : PagePreviewState()
 }
 
-/**
- * 頁面預覽主要組件。
- */
-@Composable
-fun PagePreviews(
-    pagePreviewState: PagePreviewState,
-    onOpenPage: (Int) -> Unit,
-    onMorePreviewsClicked: () -> Unit,
-    rowCount: Int = 2,
-) {
-    Column(Modifier.fillMaxWidth()) {
-        var maxWidth by remember { mutableStateOf(Dp.Hairline) }
-        val density = LocalDensity.current
-
-        when {
-            pagePreviewState is PagePreviewState.Loading || maxWidth == Dp.Hairline -> {
-                PagePreviewLoading(setMaxWidth = { maxWidth = it })
-            }
-            pagePreviewState is PagePreviewState.Success -> {
-                val itemPerRowCount = floor(maxWidth / 120.dp).toInt().coerceAtLeast(1)
-                pagePreviewState.pagePreviews
-                    .take(rowCount * itemPerRowCount)
-                    .chunked(itemPerRowCount)
-                    .forEach { rowItems ->
-                        PagePreviewRow(
-                            onOpenPage = onOpenPage,
-                            items = remember(rowItems) { rowItems.toImmutableList() },
-                        )
-                    }
-                PagePreviewMore(onMorePreviewsClicked)
-            }
-            else -> {}
-        }
-    }
-}
-
 @Composable
 private fun PagePreviewLoading(
     setMaxWidth: (Dp) -> Unit,
 ) {
     val density = LocalDensity.current
-    Row(
+    Box(
         modifier = Modifier
+            .height(60.dp)
             .fillMaxWidth()
-            .padding(16.dp)
-            .onSizeChanged { setMaxWidth(with(density) { it.width.toDp() }) },
-        horizontalArrangement = Arrangement.Center,
+            .onGloballyPositioned {
+                setMaxWidth(with(density) { it.size.width.toDp() })
+            },
+        contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
-        )
+        CircularProgressIndicator()
     }
 }
 
@@ -107,26 +79,15 @@ private fun PagePreviewRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
     ) {
-        items.forEach { preview ->
-            SubcomposeAsyncImage(
-                model = preview,
-                contentDescription = "Page ${preview.index + 1}",
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(2f / 3f)
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable { onOpenPage(preview.index) },
-                contentScale = ContentScale.Crop,
-                loading = {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .align(Alignment.Center),
-                    )
-                },
+        items.forEach { page ->
+            PagePreview(
+                modifier = Modifier.weight(1F),
+                page = page,
+                onOpenPage = onOpenPage,
             )
         }
     }
@@ -136,17 +97,130 @@ private fun PagePreviewRow(
 private fun PagePreviewMore(
     onMorePreviewsClicked: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.Center,
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
     ) {
         TextButton(onClick = onMorePreviewsClicked) {
-            Text(
-                text = "更多頁面預覽",
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Text("更多預覽")
         }
+    }
+}
+
+@Composable
+fun PagePreviews(
+    pagePreviewState: PagePreviewState,
+    onOpenPage: (Int) -> Unit,
+    onMorePreviewsClicked: () -> Unit,
+    rowCount: Int,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        var maxWidth by remember {
+            mutableStateOf(Dp.Hairline)
+        }
+        when {
+            pagePreviewState is PagePreviewState.Loading || maxWidth == Dp.Hairline -> {
+                PagePreviewLoading(setMaxWidth = { maxWidth = it })
+            }
+            pagePreviewState is PagePreviewState.Success -> {
+                val itemPerRowCount = floor(maxWidth / 120.dp).toInt()
+                pagePreviewState.pagePreviews.take(rowCount * itemPerRowCount).chunked(itemPerRowCount).forEach {
+                    PagePreviewRow(
+                        onOpenPage = onOpenPage,
+                        items = remember(it) { it.toImmutableList() },
+                    )
+                }
+
+                PagePreviewMore(onMorePreviewsClicked)
+            }
+            else -> {}
+        }
+    }
+}
+
+fun LazyListScope.PagePreviewItems(
+    pagePreviewState: PagePreviewState,
+    onOpenPage: (Int) -> Unit,
+    onMorePreviewsClicked: () -> Unit,
+    maxWidth: Dp,
+    setMaxWidth: (Dp) -> Unit,
+    rowCount: Int,
+) {
+    when {
+        pagePreviewState is PagePreviewState.Loading || maxWidth == Dp.Hairline -> {
+            item(
+                key = MangaScreenItem.CHAPTER_PREVIEW_LOADING,
+                contentType = MangaScreenItem.CHAPTER_PREVIEW_LOADING,
+            ) {
+                PagePreviewLoading(setMaxWidth = setMaxWidth)
+            }
+        }
+        pagePreviewState is PagePreviewState.Success -> {
+            val itemPerRowCount = floor(maxWidth / 120.dp).toInt()
+            items(
+                key = { "${MangaScreenItem.CHAPTER_PREVIEW_ROW}-$it" },
+                contentType = { MangaScreenItem.CHAPTER_PREVIEW_ROW },
+                items = pagePreviewState.pagePreviews.take(rowCount * itemPerRowCount).chunked(itemPerRowCount),
+            ) {
+                PagePreviewRow(
+                    onOpenPage = onOpenPage,
+                    items = remember(it) { it.toImmutableList() },
+                )
+            }
+            item(
+                key = MangaScreenItem.CHAPTER_PREVIEW_MORE,
+                contentType = MangaScreenItem.CHAPTER_PREVIEW_MORE,
+            ) {
+                PagePreviewMore(onMorePreviewsClicked)
+            }
+        }
+        else -> {}
+    }
+}
+
+@Composable
+fun PagePreview(
+    modifier: Modifier,
+    page: PagePreview,
+    onOpenPage: (Int) -> Unit,
+) {
+    Column(
+        modifier
+            .clip(MaterialTheme.shapes.small)
+            .clickable { onOpenPage(page.index - 1) },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        SubcomposeAsyncImage(
+            model = page,
+            contentDescription = null,
+            loading = {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    val progress by page.progress.collectAsState()
+                    if (progress < 0) {
+                        CircularProgressIndicator()
+                    } else {
+                        CircularProgressIndicator(
+                            progress = { progress / 0.01F },
+                        )
+                    }
+                }
+            },
+            success = {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    this@SubcomposeAsyncImage.SubcomposeAsyncImageContent(
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small),
+                        contentScale = ContentScale.FillWidth,
+                    )
+                }
+            },
+            modifier = Modifier
+                .height(200.dp)
+                .width(120.dp),
+        )
+        Text(page.index.toString())
     }
 }

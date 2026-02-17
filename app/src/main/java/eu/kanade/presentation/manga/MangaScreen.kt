@@ -478,8 +478,12 @@ private fun MangaScreenSmallImpl(
                         SearchMetadataChips(
                             flatMetadata = state.flatMetadata,
                             onTagClick = { tag ->
-                                // 直接搜尋標籤名稱，不包含 namespace
-                                onTagSearch(tag.name)
+                                val query = if (tag.namespace != null) {
+                                    "${tag.namespace}:${tag.name}"
+                                } else {
+                                    tag.name
+                                }
+                                onTagSearch(query)
                             },
                         )
                     }
@@ -505,6 +509,7 @@ private fun MangaScreenSmallImpl(
                                 pagePreviewState = state.pagePreviewState,
                                 onOpenPage = { page -> onPreviewPageClick(state.firstChapterId, page) },
                                 onMorePreviewsClicked = { /* No-op */ },
+                                rowCount = 2,
                             )
                         } else {
                             FirstChapterPreviewGallery(
@@ -768,8 +773,12 @@ fun MangaScreenLargeImpl(
                         SearchMetadataChips(
                             flatMetadata = state.flatMetadata,
                             onTagClick = { tag ->
-                                // 直接搜尋標籤名稱，不包含 namespace
-                                onTagSearch(tag.name)
+                                val query = if (tag.namespace != null) {
+                                    "${tag.namespace}:${tag.name}"
+                                } else {
+                                    tag.name
+                                }
+                                onTagSearch(query)
                             },
                         )
                     }
@@ -808,6 +817,7 @@ fun MangaScreenLargeImpl(
                                         pagePreviewState = state.pagePreviewState,
                                         onOpenPage = { page -> onPreviewPageClick(state.firstChapterId, page) },
                                         onMorePreviewsClicked = { /* No-op */ },
+                                        rowCount = 2,
                                     )
                                 } else {
                                     FirstChapterPreviewGallery(

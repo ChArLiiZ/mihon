@@ -161,17 +161,20 @@ private fun FilterItem(filter: Filter<*>, onUpdate: () -> Unit) {
                 }
             }
         }
-        // SY -->
         is Filter.AutoComplete -> {
-            TextItem(
-                label = filter.name,
-                value = filter.state.joinToString(","),
+            AutoCompleteItem(
+                name = filter.name,
+                state = filter.state,
+                hint = filter.hint,
+                values = filter.values,
+                skipAutoFillTags = filter.skipAutoFillTags,
+                validPrefixes = filter.validPrefixes,
             ) {
-                filter.state = it.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() }
+                filter.state = it
                 onUpdate()
             }
         }
-        // SY <--
+
     }
 }
 

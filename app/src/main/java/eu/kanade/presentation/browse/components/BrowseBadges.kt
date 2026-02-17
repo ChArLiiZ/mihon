@@ -30,6 +30,8 @@ internal fun InLibraryBadge(enabled: Boolean) {
     if (enabled) {
         IconBadge(
             imageVector = Icons.Outlined.CollectionsBookmark,
+            color = MaterialTheme.colorScheme.primary,
+            iconColor = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
