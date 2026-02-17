@@ -115,12 +115,12 @@ class BrowseSourceScreenModel(
             Pager(PagingConfig(pageSize = 25)) {
                 getRemoteManga(sourceId, listing.query ?: "", listing.filters)
             }.flow.map { pagingData ->
-                pagingData.map { manga ->
+                pagingData.map { (manga, metadata) ->
                     getManga.subscribe(manga.url, manga.source)
-                        .map { it ?: manga }
+                        .map { (it ?: manga) to metadata }
                         .stateIn(ioCoroutineScope)
                 }
-                    .filter { !hideInLibraryItems || !it.value.favorite }
+                    .filter { !hideInLibraryItems || !it.value.first.favorite }
             }
                 .cachedIn(ioCoroutineScope)
         }

@@ -44,7 +44,12 @@ interface MetadataSource<M : RaisedSearchMetadata, I> : CatalogueSource {
         val mangaId = manga.id()
         val metadata = if (mangaId != null) {
             val flatMetadata = getFlatMetadataById.await(mangaId)
-            flatMetadata?.raise(metaClass) ?: newMetaInstance()
+            try {
+                flatMetadata?.raise(metaClass) ?: newMetaInstance()
+            } catch (e: Exception) {
+                // If deserialization fails (e.g., schema mismatch), create new instance
+                newMetaInstance()
+            }
         } else {
             newMetaInstance()
         }
@@ -68,7 +73,12 @@ interface MetadataSource<M : RaisedSearchMetadata, I> : CatalogueSource {
     suspend fun fetchOrLoadMetadata(mangaId: Long?, inputProducer: suspend () -> I): M {
         val meta = if (mangaId != null) {
             val flatMetadata = getFlatMetadataById.await(mangaId)
-            flatMetadata?.raise(metaClass)
+            try {
+                flatMetadata?.raise(metaClass)
+            } catch (e: Exception) {
+                // If deserialization fails (e.g., schema mismatch), return null to trigger re-fetch
+                null
+            }
         } else {
             null
         }

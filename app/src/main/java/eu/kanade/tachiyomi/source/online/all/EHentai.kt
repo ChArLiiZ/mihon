@@ -133,10 +133,10 @@ class EHentai(
         val parsedMangas = select(".itg > tbody > tr").filter { element ->
             // Do not parse header and ads
             element.selectFirst("th") == null && element.selectFirst(".itd") == null
-        }.mapNotNull { body ->
-            val thumbnailElement = body.selectFirst(".gl1e img, .gl2c .glthumb img") ?: return@mapNotNull null
-            val column2 = body.selectFirst(".gl3e, .gl2c") ?: return@mapNotNull null
-            val linkElement = body.selectFirst(".gl3c > a, .gl2e > div > a") ?: return@mapNotNull null
+        }.map { body ->
+            val thumbnailElement = body.selectFirst(".gl1e img, .gl2c .glthumb img")!!
+            val column2 = body.selectFirst(".gl3e, .gl2c")!!
+            val linkElement = body.selectFirst(".gl3c > a, .gl2e > div > a")!!
             val infoElement = body.selectFirst(".gl3e")
 
             // why is column2 null
@@ -146,9 +146,7 @@ class EHentai(
 
             ParsedManga(
                 fav = FAVORITES_BORDER_HEX_COLORS.indexOf(
-                    favElement?.attr("style")?.let {
-                        if (it.length >= 17) it.substring(14, 17) else null
-                    },
+                    favElement?.attr("style")?.substring(14, 17),
                 ),
                 manga = SManga.create().apply {
                     // Get title
@@ -175,7 +173,7 @@ class EHentai(
                             )
                         }
                     } else {
-                        val tagElement = body.selectFirst(".gl3c > a") ?: return@mapNotNull null
+                        val tagElement = body.selectFirst(".gl3c > a")!!
                         val tagElements = tagElement.select("div")
                         tagElements.forEach { element ->
                             if (element.className() == "gt") {
@@ -207,8 +205,8 @@ class EHentai(
                     } else {
                         genre = getGenre(body.selectFirst(".gl1c div"))
 
-                        val info = body.selectFirst(".gl2c") ?: return@mapNotNull null
-                        val extraInfo = body.selectFirst(".gl4c") ?: return@mapNotNull null
+                        val info = body.selectFirst(".gl2c")!!
+                        val extraInfo = body.selectFirst(".gl4c")!!
 
                         val infoList = info.select("div div")
 

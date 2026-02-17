@@ -45,10 +45,11 @@ import eu.kanade.tachiyomi.util.system.copyToClipboard
 import exh.metadata.metadata.EHentaiSearchMetadata
 import exh.util.SourceTagsUtil
 import kotlinx.coroutines.flow.StateFlow
+import tachiyomi.core.common.i18n.pluralStringResource
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.components.ListGroupHeader
-import tachiyomi.presentation.core.i18n.pluralStringResource
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.selectedBackground
 import java.time.Instant
@@ -56,7 +57,7 @@ import java.time.ZoneId
 
 @Composable
 fun BrowseSourceEHentaiList(
-    pagingItems: LazyPagingItems<StateFlow<Manga>>,
+    pagingItems: LazyPagingItems<StateFlow<Pair<Manga, exh.metadata.metadata.RaisedSearchMetadata?>>>,
     contentPadding: PaddingValues,
     onMangaClick: (Manga) -> Unit,
     onMangaLongClick: (Manga) -> Unit,
@@ -69,15 +70,17 @@ fun BrowseSourceEHentaiList(
     ) {
         items(
             count = pagingItems.itemCount,
-            key = pagingItems.itemKey { it.value.id },
+            key = pagingItems.itemKey { it.value.first.id },
             contentType = pagingItems.itemContentType { "manga" },
         ) { index ->
-            val item by pagingItems[index]?.collectAsState() ?: return@items
+            val pair by pagingItems[index]?.collectAsState() ?: return@items
+            val manga = pair.first
+            val metadata = pair.second as? EHentaiSearchMetadata
             BrowseSourceEHentaiListItem(
-                manga = item,
-                metadata = null, // TODO: Pass metadata when available
-                onClick = { onMangaClick(item) },
-                onLongClick = { onMangaLongClick(item) },
+                manga = manga,
+                metadata = metadata,
+                onClick = { onMangaClick(manga) },
+                onLongClick = { onMangaLongClick(manga) },
                 modifier = Modifier.animateItemFastScroll(),
             )
         }
@@ -139,40 +142,58 @@ fun BrowseSourceEHentaiListItem(
                     }
                 }
 
-                // Tags/Genre and Rating
+                // Tags/Genre, Rating and Pages
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom,
                 ) {
-                    val genre = metadata?.genre ?: manga.genre?.firstOrNull()
-                    if (genre != null) {
-                        val color = SourceTagsUtil.getGenreColor(genre)?.color
-                        Text(
-                            text = genre.uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (color != null) Color(color) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .background(
-                                    color = if (color != null) Color(color).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val genre = metadata?.genre ?: manga.genre?.firstOrNull()
+                        if (genre != null) {
+                            val color = SourceTagsUtil.getGenreColor(genre)?.color
+                            Text(
+                                text = genre.uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = if (color != null) Color(color) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .background(
+                                        color = if (color != null) Color(color).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+
+                        // Pages count if available
+                        if (metadata != null && metadata.length != null) {
+                            Text(
+                                text = LocalContext.current.pluralStringResource(
+                                    SYMR.plurals.num_pages,
+                                    metadata.length!!,
+                                    metadata.length!!,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
 
-                    // Rating if available (hard without metadata, maybe parsing description?)
+                    // Rating if available
                     if (metadata != null && metadata.averageRating != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = String.format("%.2f", metadata.averageRating), // Simple formatting
-                                style = MaterialTheme.typography.bodySmall,
-                            )
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
                                 tint = MaterialTheme.colorScheme.secondary,
+                            )
+                            Text(
+                                text = String.format("%.2f", metadata.averageRating),
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
                     }
