@@ -53,6 +53,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.Locale
 
 object SettingsEhScreen : SearchableSettings {
 
@@ -523,28 +524,28 @@ object SettingsEhScreen : SearchableSettings {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Language", modifier = Modifier.padding(4.dp))
-                        Text(text = "Original", modifier = Modifier.padding(4.dp))
-                        Text(text = "Translated", modifier = Modifier.padding(4.dp))
-                        Text(text = "Rewrite", modifier = Modifier.padding(4.dp))
+                        Text(text = stringResource(SYMR.strings.language), modifier = Modifier.padding(4.dp))
+                        Text(text = stringResource(SYMR.strings.original), modifier = Modifier.padding(4.dp))
+                        Text(text = stringResource(SYMR.strings.translated), modifier = Modifier.padding(4.dp))
+                        Text(text = stringResource(SYMR.strings.rewrite), modifier = Modifier.padding(4.dp))
                     }
-                    LanguageDialogRow(language = "Japanese", row = state.japanese)
-                    LanguageDialogRow(language = "English", row = state.english)
-                    LanguageDialogRow(language = "Chinese", row = state.chinese)
-                    LanguageDialogRow(language = "Dutch", row = state.dutch)
-                    LanguageDialogRow(language = "French", row = state.french)
-                    LanguageDialogRow(language = "German", row = state.german)
-                    LanguageDialogRow(language = "Hungarian", row = state.hungarian)
-                    LanguageDialogRow(language = "Italian", row = state.italian)
-                    LanguageDialogRow(language = "Korean", row = state.korean)
-                    LanguageDialogRow(language = "Polish", row = state.polish)
-                    LanguageDialogRow(language = "Portuguese", row = state.portuguese)
-                    LanguageDialogRow(language = "Russian", row = state.russian)
-                    LanguageDialogRow(language = "Spanish", row = state.spanish)
-                    LanguageDialogRow(language = "Thai", row = state.thai)
-                    LanguageDialogRow(language = "Vietnamese", row = state.vietnamese)
-                    LanguageDialogRow(language = "N/A", row = state.notAvailable)
-                    LanguageDialogRow(language = "Other", row = state.other)
+                    LanguageDialogRow(language = Locale.JAPANESE.getDisplayLanguage(Locale.getDefault()), row = state.japanese)
+                    LanguageDialogRow(language = Locale.ENGLISH.getDisplayLanguage(Locale.getDefault()), row = state.english)
+                    LanguageDialogRow(language = Locale.CHINESE.getDisplayLanguage(Locale.getDefault()), row = state.chinese)
+                    LanguageDialogRow(language = Locale("nl").getDisplayLanguage(Locale.getDefault()), row = state.dutch)
+                    LanguageDialogRow(language = Locale.FRENCH.getDisplayLanguage(Locale.getDefault()), row = state.french)
+                    LanguageDialogRow(language = Locale.GERMAN.getDisplayLanguage(Locale.getDefault()), row = state.german)
+                    LanguageDialogRow(language = Locale("hu").getDisplayLanguage(Locale.getDefault()), row = state.hungarian)
+                    LanguageDialogRow(language = Locale.ITALIAN.getDisplayLanguage(Locale.getDefault()), row = state.italian)
+                    LanguageDialogRow(language = Locale.KOREAN.getDisplayLanguage(Locale.getDefault()), row = state.korean)
+                    LanguageDialogRow(language = Locale("pl").getDisplayLanguage(Locale.getDefault()), row = state.polish)
+                    LanguageDialogRow(language = Locale("pt").getDisplayLanguage(Locale.getDefault()), row = state.portuguese)
+                    LanguageDialogRow(language = Locale("ru").getDisplayLanguage(Locale.getDefault()), row = state.russian)
+                    LanguageDialogRow(language = Locale("es").getDisplayLanguage(Locale.getDefault()), row = state.spanish)
+                    LanguageDialogRow(language = Locale("th").getDisplayLanguage(Locale.getDefault()), row = state.thai)
+                    LanguageDialogRow(language = Locale("vi").getDisplayLanguage(Locale.getDefault()), row = state.vietnamese)
+                    LanguageDialogRow(language = stringResource(MR.strings.not_applicable), row = state.notAvailable)
+                    LanguageDialogRow(language = stringResource(MR.strings.other_source), row = state.other)
                 }
             },
             confirmButton = {
@@ -658,56 +659,56 @@ object SettingsEhScreen : SearchableSettings {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Category", modifier = Modifier.padding(4.dp))
-                        Text(text = "Enabled", modifier = Modifier.padding(4.dp))
+                        Text(text = stringResource(MR.strings.categories), modifier = Modifier.padding(4.dp))
+                        Text(text = stringResource(SYMR.strings.enabled), modifier = Modifier.padding(4.dp))
                     }
                     FrontPageCategoriesDialogRow(
-                        title = "Doujinshi",
+                        title = stringResource(SYMR.strings.doujinshi),
                         value = state.doujinshi,
                         onValueChange = { state.doujinshi = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Manga",
+                        title = stringResource(SYMR.strings.entry_type_manga),
                         value = state.manga,
                         onValueChange = { state.manga = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Artist CG",
+                        title = stringResource(SYMR.strings.artist_cg),
                         value = state.artistCg,
                         onValueChange = { state.artistCg = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Game CG",
+                        title = stringResource(SYMR.strings.game_cg),
                         value = state.gameCg,
                         onValueChange = { state.gameCg = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Western",
+                        title = stringResource(SYMR.strings.western),
                         value = state.western,
                         onValueChange = { state.western = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Non-H",
+                        title = stringResource(SYMR.strings.non_h),
                         value = state.nonH,
                         onValueChange = { state.nonH = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Image Set",
+                        title = stringResource(SYMR.strings.image_set),
                         value = state.imageSet,
                         onValueChange = { state.imageSet = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Cosplay",
+                        title = stringResource(SYMR.strings.cosplay),
                         value = state.cosplay,
                         onValueChange = { state.cosplay = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Asian Porn",
+                        title = stringResource(SYMR.strings.asian_porn),
                         value = state.asianPorn,
                         onValueChange = { state.asianPorn = it },
                     )
                     FrontPageCategoriesDialogRow(
-                        title = "Misc",
+                        title = stringResource(SYMR.strings.misc),
                         value = state.misc,
                         onValueChange = { state.misc = it },
                     )

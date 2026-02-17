@@ -931,4 +931,50 @@
     <string name="pref_download_concurrent_pages">同時下載的頁數</string>
     <string name="pref_download_concurrent_pages_summary">每個來源同時下載的頁數</string>
     <string name="action_webview_close_tab">關閉頁籤</string>
+    <string name="action_filter_excluded_scanlators">篩選排除的掃譯者</string>
+    <string name="action_web_view" translatable="false">WebView</string>
+    <string name="aged">已過時</string>
+    <string name="alt_title">別名</string>
+    <string name="app_name" translatable="false">Mihon</string>
+    <string name="artist_cg">藝術家 CG</string>
+    <string name="asian_porn">亞洲成人內容</string>
+    <string name="average_rating">平均評分</string>
+    <string name="cosplay">角色扮演</string>
+    <string name="date_posted">發布日期</string>
+    <string name="doujinshi">同人誌</string>
+    <string name="entry_type_manga">漫畫</string>
+    <string name="ext_installer_packageinstaller" translatable="false">PackageInstaller</string>
+    <string name="ext_installer_private" translatable="false">Private</string>
+    <string name="ext_installer_shizuku" translatable="false">Shizuku</string>
+    <string name="gallery_size">圖庫大小</string>
+    <string name="game_cg">遊戲 CG</string>
+    <string name="genre">類型</string>
+    <string name="id">ID</string>
+    <string name="image_set">圖片集</string>
+    <string name="is_exhentai_gallery">ExHentai 圖庫</string>
+    <string name="language">語言</string>
+    <string name="last_update_check">上次更新檢查</string>
+    <string name="misc">其他</string>
+    <string name="non_h">非 H</string>
+    <string name="page_count">頁數</string>
+    <string name="parent">父項</string>
+    <string name="pref_auto_page_turn">自動翻頁</string>
+    <string name="pref_auto_page_turn_interval">翻頁間隔</string>
+    <string name="pref_auto_page_turn_interval_summary">%d 秒</string>
+    <string name="pref_auto_page_turn_scroll_speed">捲動速度</string>
+    <string name="thumbnail_url">縮圖網址</string>
+    <string name="token">Token</string>
+    <string name="total_favorites">總收藏數</string>
+    <string name="total_ratings">總評分數</string>
+    <string name="translated">已翻譯</string>
+    <string name="visible">可見</string>
+    <string name="western">西方</string>
+    <string name="filter_presets">篩選預設</string>
+    <string name="filter_presets_empty">尚未儲存任何預設。\n儲存目前篩選條件以便快速重用。</string>
+    <string name="save_current_filters">儲存目前篩選</string>
+    <string name="save_filter_preset">儲存篩選預設</string>
+    <string name="rename_preset">重新命名預設</string>
+    <string name="preset_name">預設名稱</string>
+    <string name="dont_kill_my_app">別把我的 App 殺掉！</string>
+    <string name="pref_category_e_ink">電子墨水螢幕</string>
 </resources>

@@ -130,7 +130,7 @@ object SettingsReaderScreen : SearchableSettings {
         val flashColorPref = readerPreferences.flashColor()
 
         return Preference.PreferenceGroup(
-            title = "E-Ink",
+            title = stringResource(MR.strings.pref_category_e_ink),
             preferenceItems = persistentListOf(
                 Preference.PreferenceItem.SwitchPreference(
                     preference = readerPreferences.flashOnPageChange(),

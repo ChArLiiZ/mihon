@@ -68,7 +68,7 @@ fun EhLoginWebViewScreen(
         topBar = {
             Box {
                 AppBar(
-                    title = "ExHentai login",
+                    title = stringResource(SYMR.strings.exhentai_login),
                     navigateUp = onUp,
                     navigationIcon = Icons.Outlined.Close,
                 )

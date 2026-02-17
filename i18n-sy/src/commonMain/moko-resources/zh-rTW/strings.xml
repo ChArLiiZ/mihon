@@ -682,4 +682,21 @@
     <string name="file_extension">副檔名</string>
     <string name="base_url">基礎url</string>
     <string name="final_chapter">終章</string>
+    <string name="eh_settings_upload">上傳設定</string>
+    <string name="eh_settings_upload_failed">設定上傳失敗</string>
+    <string name="eh_settings_upload_text">你要將設定上傳到 ExHentai 嗎？</string>
+    <string name="eh_settings_uploaded">設定已上傳</string>
+    <string name="enhanced_e_hentai_view">增強 E-Hentai/ExHentai 檢視</string>
+    <string name="enhanced_e_hentai_view_summary">啟用或停用針對 E-Hentai/ExHentai 的增強瀏覽選單</string>
+    <string name="image_quality">圖片品質</string>
+    <string name="image_quality_auto">自動</string>
+    <string name="image_quality_summary">下載圖片的品質</string>
+    <string name="pref_category_eh_summary">登入、標籤與更多！</string>
+    <string name="pref_include_chapter_url_hash">包含章節 URL 雜湊</string>
+    <string name="pref_include_chapter_url_hash_desc">在章節檔案或資料夾名稱後附加章節 URL 的 MD5 雜湊前六個字元。</string>
+    <string name="original">原始</string>
+    <string name="rewrite">重寫</string>
+    <string name="enabled">已啟用</string>
+    <string name="exhentai_login">ExHentai 登入</string>
+    <string name="jump_seek">跳轉/定位</string>
 </resources>

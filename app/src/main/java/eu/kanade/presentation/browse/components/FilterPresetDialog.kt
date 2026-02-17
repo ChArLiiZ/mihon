@@ -52,7 +52,7 @@ fun FilterPresetDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filter Presets") },
+        title = { Text(stringResource(MR.strings.filter_presets)) },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -61,7 +61,7 @@ fun FilterPresetDialog(
                 if (presets.isEmpty()) {
                     item {
                         Text(
-                            text = "No saved presets yet.\nSave your current filters to quickly reuse them.",
+                            text = stringResource(MR.strings.filter_presets_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 16.dp),
@@ -85,7 +85,7 @@ fun FilterPresetDialog(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Save Current Filters")
+                        Text(stringResource(MR.strings.save_current_filters))
                     }
                 }
             }
@@ -99,7 +99,7 @@ fun FilterPresetDialog(
 
     if (showSaveDialog) {
         NameInputDialog(
-            title = "Save Filter Preset",
+            title = stringResource(MR.strings.save_filter_preset),
             initialName = "",
             onDismiss = { showSaveDialog = false },
             onConfirm = { name ->
@@ -111,7 +111,7 @@ fun FilterPresetDialog(
 
     editingPreset?.let { preset ->
         NameInputDialog(
-            title = "Rename Preset",
+            title = stringResource(MR.strings.rename_preset),
             initialName = preset.name,
             onDismiss = { editingPreset = null },
             onConfirm = { newName ->
@@ -157,14 +157,14 @@ private fun PresetItem(
                 IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Rename",
+                        contentDescription = stringResource(MR.strings.rename_preset),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(MR.strings.action_delete),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -189,7 +189,7 @@ private fun NameInputDialog(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Preset Name") },
+                label = { Text(stringResource(MR.strings.preset_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

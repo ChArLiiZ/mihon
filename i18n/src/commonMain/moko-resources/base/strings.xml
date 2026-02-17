@@ -1120,4 +1120,13 @@
         <item quantity="one">%1$d page</item>
         <item quantity="other">%1$d pages</item>
     </plurals>
+
+    <string name="filter_presets">Filter presets</string>
+    <string name="filter_presets_empty">No saved presets yet.\nSave your current filters to quickly reuse them.</string>
+    <string name="save_current_filters">Save current filters</string>
+    <string name="save_filter_preset">Save filter preset</string>
+    <string name="rename_preset">Rename preset</string>
+    <string name="preset_name">Preset name</string>
+    <string name="dont_kill_my_app">Don\'t kill my app!</string>
+    <string name="pref_category_e_ink">E-Ink</string>
 </resources>

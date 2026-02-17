@@ -82,8 +82,10 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import rx.Observable
+import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.runAsObservable
 import tachiyomi.core.common.util.lang.withIOContext
+import tachiyomi.i18n.sy.SYMR
 import uy.kohesive.injekt.injectLazy
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -1027,7 +1029,7 @@ class EHentai(
             GenreGroup(),
             AdvancedGroup(),
             ReverseFilter(),
-            JumpSeekFilter(),
+            JumpSeekFilter(context.stringResource(SYMR.strings.jump_seek)),
         )
     }
 
@@ -1195,7 +1197,7 @@ class EHentai(
 
     class ReverseFilter : Filter.CheckBox("Reverse search results")
 
-    class JumpSeekFilter : Filter.Text("Jump/Seek")
+    class JumpSeekFilter(label: String) : Filter.Text(label)
 
     override val name = if (exh) {
         "ExHentai"

@@ -754,4 +754,9 @@
 
     <!-- Humanize time -->
     <string name="humanize_fallback">moments ago</string>
+    <string name="original">Original</string>
+    <string name="rewrite">Rewrite</string>
+    <string name="enabled">Enabled</string>
+    <string name="exhentai_login">ExHentai login</string>
+    <string name="jump_seek">Jump/Seek</string>
 </resources>

@@ -222,7 +222,7 @@ data class BrowseSourceScreen(
                                     )
                                 },
                                 label = {
-                                    Text(text = "Presets")
+                                    Text(text = stringResource(MR.strings.filter_presets))
                                 },
                             )
                         }
