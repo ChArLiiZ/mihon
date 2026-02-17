@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FilterNone
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -65,30 +66,34 @@ private fun IconBadge(
     }
 }
 
+/**
+ * Unified metadata badges that parse description for page count, favorites, and rating.
+ * Supports formats from both NHentai and EHentai extensions.
+ */
 @Composable
-internal fun NHentaiMetadataBadges(manga: Manga) {
-    val description = manga.description
+internal fun MetadataBadges(manga: Manga) {
+    val description = manga.description ?: return
 
-    if (description == null) return
-
-    // 从 description 解析页数和收藏数
-    // 处理可能的多行格式
-    val lines = description.split("\n")
     var pageCount: String? = null
     var favorites: String? = null
+    var rating: String? = null
 
-    for (line in lines) {
+    for (line in description.split("\n")) {
         if (pageCount == null) {
-            val pageMatch = Regex("""Pages:\s*(\d+)""").find(line)
-            pageMatch?.groupValues?.get(1)?.let { pageCount = it }
+            // "Pages: 25" or "Length: 25 pages"
+            PAGE_COUNT_REGEX.find(line)?.groupValues?.get(1)?.let { pageCount = it }
         }
         if (favorites == null) {
-            val favMatch = Regex("""Favorited by:\s*(\d+)""").find(line)
-            favMatch?.groupValues?.get(1)?.let { favorites = it }
+            // "Favorited by: 1234" or "Favorited: 1234 times"
+            FAVORITES_REGEX.find(line)?.groupValues?.get(1)?.let { favorites = it }
+        }
+        if (rating == null) {
+            // "Rating: 4.5" or "Rating: 4.50 (123)"
+            RATING_REGEX.find(line)?.groupValues?.get(1)?.let { rating = it }
         }
     }
 
-    if (pageCount == null && favorites == null) return
+    if (pageCount == null && favorites == null && rating == null) return
 
     Row {
         pageCount?.let { count ->
@@ -97,20 +102,31 @@ internal fun NHentaiMetadataBadges(manga: Manga) {
                 icon = Icons.Outlined.FilterNone,
                 color = MaterialTheme.colorScheme.secondary,
             )
-            if (favorites != null) {
-                Spacer(modifier = Modifier.width(4.dp))
-            }
         }
 
         favorites?.let { favs ->
+            Spacer(modifier = Modifier.width(4.dp))
             TextBadge(
-                text = formatFavorites(favs.toLongOrNull() ?: 0),
+                text = formatCount(favs.toLongOrNull() ?: 0),
                 icon = Icons.Outlined.Favorite,
                 color = MaterialTheme.colorScheme.error,
             )
         }
+
+        rating?.let { rate ->
+            Spacer(modifier = Modifier.width(4.dp))
+            TextBadge(
+                text = rate,
+                icon = Icons.Outlined.Star,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
     }
 }
+
+// Keep old name as alias for compatibility
+@Composable
+internal fun NHentaiMetadataBadges(manga: Manga) = MetadataBadges(manga)
 
 @Composable
 private fun TextBadge(
@@ -142,9 +158,20 @@ private fun TextBadge(
     }
 }
 
-private fun formatFavorites(count: Long): String {
+private fun formatCount(count: Long): String {
     return when {
-        count >= 1000 -> "${count / 1000}K"
+        count >= 1_000_000 -> "${"%.1f".format(count / 1_000_000.0)}M"
+        count >= 1000 -> "${"%.1f".format(count / 1000.0)}K"
         else -> count.toString()
     }
 }
+
+// Regex patterns for parsing metadata from description
+// Matches "Pages: 25" and "Length: 25 pages"
+private val PAGE_COUNT_REGEX = Regex("""(?:Pages|Length):\s*(\d+)""")
+
+// Matches "Favorited by: 1234" and "Favorited: 1234 times"
+private val FAVORITES_REGEX = Regex("""Favorited(?:\s*by)?:\s*(\d+)""")
+
+// Matches "Rating: 4.5" and "Rating: 4.50 (123)"
+private val RATING_REGEX = Regex("""Rating:\s*([\d.]+)""")

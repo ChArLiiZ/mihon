@@ -47,6 +47,7 @@ import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastMap
 import eu.kanade.presentation.components.relativeDateText
+import exh.ui.metadata.adapters.EHentaiDescription
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
@@ -443,6 +444,19 @@ private fun MangaScreenSmallImpl(
                     }
 
                     item(
+                        key = "EHentaiDescription",
+                        contentType = "EHentaiDescription",
+                    ) {
+                        if (state.flatMetadata != null) {
+                            EHentaiDescription(
+                                state = state,
+                                openMetadataViewer = { /* TODO */ },
+                                search = { onSearch(it, false) },
+                            )
+                        }
+                    }
+
+                    item(
                         key = MangaScreenItem.DESCRIPTION_WITH_TAG,
                         contentType = MangaScreenItem.DESCRIPTION_WITH_TAG,
                     ) {
@@ -735,6 +749,13 @@ fun MangaScreenLargeImpl(
                             readLater = state.manga.readLater,
                             onReadLaterClicked = onReadLaterClicked,
                         )
+                        if (state.flatMetadata != null) {
+                            EHentaiDescription(
+                                state = state,
+                                openMetadataViewer = { /* TODO */ },
+                                search = { onSearch(it, false) },
+                            )
+                        }
                         ExpandableMangaDescription(
                             defaultExpandState = true,
                             description = state.manga.description,

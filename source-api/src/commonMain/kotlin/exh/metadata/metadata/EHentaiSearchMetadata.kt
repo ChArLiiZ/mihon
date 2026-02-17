@@ -15,6 +15,8 @@ import uy.kohesive.injekt.api.get
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Date
+import java.util.Locale
 
 @Serializable
 class EHentaiSearchMetadata : RaisedSearchMetadata() {
@@ -61,18 +63,44 @@ class EHentaiSearchMetadata : RaisedSearchMetadata() {
             ?.takeIf { Injekt.get<DelegateSourcePreferences>().useJapaneseTitle().get() } // todo
             ?: title
 
-        // Set artist (if we can find one)
-        val artist = tags.ofNamespace(EH_ARTIST_NAMESPACE)
-            .ifEmpty { null }
-            ?.joinToString { it.name }
 
-        // Set group (if we can find one)
-        val group = tags.ofNamespace(EH_GROUP_NAMESPACE)
-            .ifEmpty { null }
-            ?.joinToString { it.name }
 
-        // Copy tags -> genres
-        val genres = tagsToGenreString()
+        // KMK -->
+        val description = StringBuilder()
+        description.append("id: $gId")
+        description.append("\n")
+        description.append("token: $gToken")
+        description.append("\n")
+        description.append("isExh: $exh")
+        description.append("\n")
+        description.append("pages: $length")
+        description.append("\n")
+        description.append("size: ${size?.let { MetadataUtil.humanReadableByteCount(it, true) }}")
+        description.append("\n")
+        description.append("posted: ${datePosted?.let { MetadataUtil.EX_DATE_FORMAT.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(it), ZoneId.systemDefault())) }}")
+        description.append("\n")
+        description.append("visible: $visible")
+        description.append("\n")
+        description.append("language: $language")
+        description.append("\n")
+        description.append("translated: $translated")
+        description.append("\n")
+        description.append("ratingCount: $ratingCount")
+        description.append("\n")
+        description.append("averageRating: $averageRating")
+        description.append("\n")
+        description.append("aged: $aged")
+        description.append("\n")
+        description.append("lastUpdateCheck: $lastUpdateCheck")
+        // KMK <--
+
+        val artist = tags.ofNamespace(EH_ARTIST_NAMESPACE).joinToString { it.name }
+
+        val genre = tags.ofNamespace(EH_GENRE_NAMESPACE).firstOrNull()?.name?.let { genre ->
+            genre.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        }
+
+        val authors = tags.ofNamespace(EH_WRITER_NAMESPACE).joinToString { it.name }
 
         // Try to automatically identify if it is ongoing, we try not to be too lenient here to avoid making mistakes
         // We default to completed
@@ -86,14 +114,13 @@ class EHentaiSearchMetadata : RaisedSearchMetadata() {
         }
 
         return manga.copy(
-            url = key ?: manga.url,
             title = title ?: manga.title,
-            artist = group ?: manga.artist,
-            author = artist ?: manga.artist,
-            description = null,
-            genre = genres,
+            thumbnail_url = cover,
+            artist = artist,
+            author = authors,
+            description = description.toString(),
+            genre = genre,
             status = status,
-            thumbnail_url = cover ?: manga.thumbnail_url,
         )
     }
 
@@ -149,6 +176,7 @@ class EHentaiSearchMetadata : RaisedSearchMetadata() {
 
         const val EH_GENRE_NAMESPACE = "genre"
         private const val EH_ARTIST_NAMESPACE = "artist"
+        private const val EH_WRITER_NAMESPACE = "writer" // KMK: Added missing constant
         private const val EH_GROUP_NAMESPACE = "group"
         const val EH_LANGUAGE_NAMESPACE = "language"
         const val EH_META_NAMESPACE = "meta"

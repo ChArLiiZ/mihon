@@ -25,7 +25,9 @@ import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.util.removeCovers
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -53,9 +55,13 @@ import uy.kohesive.injekt.api.get
 import java.time.Instant
 import eu.kanade.tachiyomi.source.model.Filter as SourceModelFilter
 
+private const val EH_SOURCE_ID = 6901L
+private const val EXH_SOURCE_ID = 6902L
+
 class BrowseSourceScreenModel(
     private val sourceId: Long,
     listingQuery: String?,
+    private val context: android.content.Context = Injekt.get<android.app.Application>(),
     sourceManager: SourceManager = Injekt.get(),
     sourcePreferences: SourcePreferences = Injekt.get(),
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
@@ -314,6 +320,48 @@ class BrowseSourceScreenModel(
         mutableState.update { it.copy(toolbarQuery = query) }
     }
 
+    // region Filter Presets
+
+    val hasFilterPresets: Boolean
+        get() = sourceId == EH_SOURCE_ID || sourceId == EXH_SOURCE_ID
+
+    private val filterPresetManager: FilterPresetManager? by lazy {
+        if (hasFilterPresets) FilterPresetManager(context, sourceId) else null
+    }
+
+    private val _filterPresets = kotlinx.coroutines.flow.MutableStateFlow(
+        filterPresetManager?.getPresets().orEmpty(),
+    )
+    val filterPresets = _filterPresets.asStateFlow()
+
+    private fun refreshFilterPresets() {
+        _filterPresets.value = filterPresetManager?.getPresets().orEmpty()
+    }
+
+    fun saveFilterPreset(name: String) {
+        filterPresetManager?.savePreset(name, state.value.filters)
+        refreshFilterPresets()
+    }
+
+    fun applyFilterPreset(presetId: String) {
+        val src = source as? CatalogueSource ?: return
+        val filters = filterPresetManager?.applyPreset(presetId, src) ?: return
+        mutableState.update { it.copy(filters = filters) }
+        search(filters = filters)
+    }
+
+    fun deleteFilterPreset(presetId: String) {
+        filterPresetManager?.deletePreset(presetId)
+        refreshFilterPresets()
+    }
+
+    fun renameFilterPreset(presetId: String, newName: String) {
+        filterPresetManager?.updatePresetName(presetId, newName)
+        refreshFilterPresets()
+    }
+
+    // endregion
+
     sealed class Listing(open val query: String?, open val filters: FilterList) {
         data object Popular : Listing(query = GetRemoteManga.QUERY_POPULAR, filters = FilterList())
         data object Latest : Listing(query = GetRemoteManga.QUERY_LATEST, filters = FilterList())
@@ -335,6 +383,7 @@ class BrowseSourceScreenModel(
 
     sealed interface Dialog {
         data object Filter : Dialog
+        data object FilterPresets : Dialog
         data class RemoveManga(val manga: Manga) : Dialog
         data class AddDuplicateManga(val manga: Manga, val duplicates: List<MangaWithChapterCount>) : Dialog
         data class ChangeMangaCategory(

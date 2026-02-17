@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.NewReleases
@@ -39,6 +40,7 @@ import eu.kanade.core.util.ifSourcesLoaded
 import eu.kanade.presentation.browse.BrowseSourceContent
 import eu.kanade.presentation.browse.MissingSourceScreen
 import eu.kanade.presentation.browse.components.BrowseSourceToolbar
+import eu.kanade.presentation.browse.components.FilterPresetDialog
 import eu.kanade.presentation.browse.components.RemoveMangaDialog
 import eu.kanade.presentation.category.components.ChangeCategoryDialog
 import eu.kanade.presentation.manga.DuplicateMangaDialog
@@ -203,6 +205,27 @@ data class BrowseSourceScreen(
                                 },
                             )
                         }
+                        if (screenModel.hasFilterPresets) {
+                            FilterChip(
+                                selected = false,
+                                onClick = {
+                                    screenModel.setDialog(
+                                        BrowseSourceScreenModel.Dialog.FilterPresets,
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Bookmarks,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(FilterChipDefaults.IconSize),
+                                    )
+                                },
+                                label = {
+                                    Text(text = "Presets")
+                                },
+                            )
+                        }
                     }
 
                     HorizontalDivider()
@@ -246,6 +269,22 @@ data class BrowseSourceScreen(
                     onReset = screenModel::resetFilters,
                     onFilter = { screenModel.search(filters = state.filters) },
                     onUpdate = screenModel::setFilters,
+                )
+            }
+            is BrowseSourceScreenModel.Dialog.FilterPresets -> {
+                val filterPresets by screenModel.filterPresets.collectAsState()
+                FilterPresetDialog(
+                    presets = filterPresets,
+                    onDismiss = onDismissRequest,
+                    onApply = { presetId ->
+                        screenModel.applyFilterPreset(presetId)
+                        onDismissRequest()
+                    },
+                    onSave = { name -> screenModel.saveFilterPreset(name) },
+                    onDelete = { presetId -> screenModel.deleteFilterPreset(presetId) },
+                    onRename = { presetId, newName ->
+                        screenModel.renameFilterPreset(presetId, newName)
+                    },
                 )
             }
             is BrowseSourceScreenModel.Dialog.AddDuplicateManga -> {

@@ -116,7 +116,10 @@ class EHentai(
     override val lang = "all"
     override val supportsLatest = true
 
-    private val exhPreferences: ExhPreferences by injectLazy()
+    private val _exhPrefs: ExhPreferences by injectLazy()
+
+    private fun getExhPreferences(): ExhPreferences = _exhPrefs
+
     // Simple in-memory cache for parent gallery lookups (replaces EHentaiUpdateHelper.parentLookupTable)
     private val parentLookupTable = ConcurrentHashMap<Int, GalleryEntry>()
 
@@ -130,10 +133,10 @@ class EHentai(
         val parsedMangas = select(".itg > tbody > tr").filter { element ->
             // Do not parse header and ads
             element.selectFirst("th") == null && element.selectFirst(".itd") == null
-        }.map { body ->
-            val thumbnailElement = body.selectFirst(".gl1e img, .gl2c .glthumb img")!!
-            val column2 = body.selectFirst(".gl3e, .gl2c")!!
-            val linkElement = body.selectFirst(".gl3c > a, .gl2e > div > a")!!
+        }.mapNotNull { body ->
+            val thumbnailElement = body.selectFirst(".gl1e img, .gl2c .glthumb img") ?: return@mapNotNull null
+            val column2 = body.selectFirst(".gl3e, .gl2c") ?: return@mapNotNull null
+            val linkElement = body.selectFirst(".gl3c > a, .gl2e > div > a") ?: return@mapNotNull null
             val infoElement = body.selectFirst(".gl3e")
 
             // why is column2 null
@@ -143,7 +146,9 @@ class EHentai(
 
             ParsedManga(
                 fav = FAVORITES_BORDER_HEX_COLORS.indexOf(
-                    favElement?.attr("style")?.substring(14, 17),
+                    favElement?.attr("style")?.let {
+                        if (it.length >= 17) it.substring(14, 17) else null
+                    },
                 ),
                 manga = SManga.create().apply {
                     // Get title
@@ -170,7 +175,7 @@ class EHentai(
                             )
                         }
                     } else {
-                        val tagElement = body.selectFirst(".gl3c > a")!!
+                        val tagElement = body.selectFirst(".gl3c > a") ?: return@mapNotNull null
                         val tagElements = tagElement.select("div")
                         tagElements.forEach { element ->
                             if (element.className() == "gt") {
@@ -202,8 +207,8 @@ class EHentai(
                     } else {
                         genre = getGenre(body.selectFirst(".gl1c div"))
 
-                        val info = body.selectFirst(".gl2c")!!
-                        val extraInfo = body.selectFirst(".gl4c")!!
+                        val info = body.selectFirst(".gl2c") ?: return@mapNotNull null
+                        val extraInfo = body.selectFirst(".gl4c") ?: return@mapNotNull null
 
                         val infoList = info.select("div div")
 
@@ -471,7 +476,7 @@ class EHentai(
     }
 
     private fun <T : MangasPage> T.checkValid(): MangasPage =
-        if (exh && mangas.isEmpty() && exhPreferences.igneousVal().get().equals("mystery", true)) {
+        if (exh && mangas.isEmpty() && getExhPreferences().igneousVal().get().equals("mystery", true)) {
             throw Exception(
                 "Invalid igneous cookie, try re-logging or finding a correct one to input in the login menu",
             )
@@ -872,30 +877,31 @@ class EHentai(
     }
 
     fun spPref() = if (exh) {
-        exhPreferences.exhSettingsProfile()
+        getExhPreferences().exhSettingsProfile()
     } else {
-        exhPreferences.ehSettingsProfile()
+        getExhPreferences().ehSettingsProfile()
     }
 
     private fun rawCookies(sp: Int): Map<String, String> {
         val cookies: MutableMap<String, String> = mutableMapOf()
-        if (exhPreferences.enableExhentai().get()) {
-            cookies[EhLoginActivity.MEMBER_ID_COOKIE] = exhPreferences.memberIdVal().get()
-            cookies[EhLoginActivity.PASS_HASH_COOKIE] = exhPreferences.passHashVal().get()
-            cookies[EhLoginActivity.IGNEOUS_COOKIE] = exhPreferences.igneousVal().get()
+        val prefs = try { getExhPreferences() } catch (e: Exception) { null }
+        if (prefs?.enableExhentai()?.get() == true) {
+            cookies[EhLoginActivity.MEMBER_ID_COOKIE] = prefs.memberIdVal().get()
+            cookies[EhLoginActivity.PASS_HASH_COOKIE] = prefs.passHashVal().get()
+            cookies[EhLoginActivity.IGNEOUS_COOKIE] = prefs.igneousVal().get()
             cookies["sp"] = sp.toString()
 
-            val sessionKey = exhPreferences.exhSettingsKey().get()
+            val sessionKey = prefs.exhSettingsKey().get()
             if (sessionKey.isNotBlank()) {
                 cookies["sk"] = sessionKey
             }
 
-            val sessionCookie = exhPreferences.exhSessionCookie().get()
+            val sessionCookie = prefs.exhSessionCookie().get()
             if (sessionCookie.isNotBlank()) {
                 cookies["s"] = sessionCookie
             }
 
-            val hathPerksCookie = exhPreferences.exhHathPerksCookies().get()
+            val hathPerksCookie = prefs.exhHathPerksCookies().get()
             if (hathPerksCookie.isNotBlank()) {
                 cookies["hath_perks"] = hathPerksCookie
             }
@@ -942,7 +948,7 @@ class EHentai(
             ToplistOptions(),
             Filter.Separator(),
             AutoCompleteTags(),
-            Watched(isEnabled = exhPreferences.exhWatchedListDefaultState().get()),
+            Watched(isEnabled = try { getExhPreferences().exhWatchedListDefaultState().get() } catch (e: Exception) { false }),
             GenreGroup(),
             AdvancedGroup(),
             ReverseFilter(),
@@ -1320,15 +1326,24 @@ class EHentai(
                 if (response.isSuccessful) {
                     val body = ByteArrayOutputStream()
                         .use {
-                            val bitmap = BitmapFactory.decodeStream(response.body.byteStream())
-                                ?: throw IOException("Null bitmap($thumbnailPreview)")
-                            Bitmap.createBitmap(
-                                bitmap,
-                                thumbnailPreview.widthOffset,
-                                0,
-                                thumbnailPreview.width.coerceAtMost(bitmap.width - thumbnailPreview.widthOffset),
-                                thumbnailPreview.height.coerceAtMost(bitmap.height),
-                            ).compress(Bitmap.CompressFormat.JPEG, 100, it)
+                            val bitmap = try {
+                                BitmapFactory.decodeStream(response.body.byteStream())
+                                    ?: throw IOException("Null bitmap($thumbnailPreview)")
+                            } catch (e: Exception) {
+                                return response
+                            }
+
+                            try {
+                                Bitmap.createBitmap(
+                                    bitmap,
+                                    thumbnailPreview.widthOffset,
+                                    0,
+                                    thumbnailPreview.width.coerceAtMost(bitmap.width - thumbnailPreview.widthOffset),
+                                    thumbnailPreview.height.coerceAtMost(bitmap.height),
+                                ).compress(Bitmap.CompressFormat.JPEG, 100, it)
+                            } catch (e: IllegalArgumentException) {
+                                return response
+                            }
                             it.toByteArray()
                         }
                         .toResponseBody("image/jpeg".toMediaType())

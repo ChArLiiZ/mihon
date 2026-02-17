@@ -1082,4 +1082,42 @@
     <string name="migrationListScreen.migrateDialog.cancelLabel">Cancel</string>
     <string name="migrationListScreen.progressDialog.cancelLabel">Cancel</string>
     <string name="migrationListScreen.matchWithoutChapterToast">No chapters found, this entry cannot be used for migration</string>
+    <!-- EHentai -->
+    <string name="doujinshi">Doujinshi</string>
+    <string name="entry_type_manga">Manga</string>
+    <string name="artist_cg">Artist CG</string>
+    <string name="game_cg">Game CG</string>
+    <string name="western">Western</string>
+    <string name="non_h">Non-H</string>
+    <string name="image_set">Image Set</string>
+    <string name="cosplay">Cosplay</string>
+    <string name="asian_porn">Asian Porn</string>
+    <string name="misc">Misc</string>
+    <string name="id">ID</string>
+    <string name="token">Token</string>
+    <string name="is_exhentai_gallery">ExHentai gallery</string>
+    <string name="thumbnail_url">Thumbnail URL</string>
+    <string name="alt_title">Alt title</string>
+    <string name="genre">Genre</string>
+    <string name="date_posted">Date posted</string>
+    <string name="parent">Parent</string>
+    <string name="visible">Visible</string>
+    <string name="language">Language</string>
+    <string name="translated">Translated</string>
+    <string name="gallery_size">Gallery size</string>
+    <string name="page_count">Page count</string>
+    <string name="total_favorites">Total favorites</string>
+    <string name="total_ratings">Total ratings</string>
+    <string name="average_rating">Average rating</string>
+    <string name="aged">Aged</string>
+    <string name="last_update_check">Last update check</string>
+
+    <plurals name="browse_language_and_pages">
+        <item quantity="one">%2$s, %1$d page</item>
+        <item quantity="other">%2$s, %1$d pages</item>
+    </plurals>
+    <plurals name="num_pages">
+        <item quantity="one">%1$d page</item>
+        <item quantity="other">%1$d pages</item>
+    </plurals>
 </resources>

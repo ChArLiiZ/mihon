@@ -66,7 +66,30 @@ class NHentai(delegate: HttpSource, val context: Context) :
 
     override suspend fun getMangaDetails(manga: SManga): SManga {
         val response = client.newCall(mangaDetailsRequest(manga)).awaitSuccess()
-        return parseToManga(manga, response)
+        val result = parseToManga(manga, response)
+        
+        // 從詳情頁面提取頁數和收藏數，更新 description
+        val body = response.body.string()
+        val json = GALLERY_JSON_REGEX.find(body)?.let { match ->
+            val jsonStr = match.groupValues[1].replace(UNICODE_ESCAPE_REGEX) { 
+                it.groupValues[1].toInt(radix = 16).toChar().toString() 
+            }
+            try {
+                jsonParser.decodeFromString<JsonResponse>(jsonStr)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        
+        if (json != null) {
+            val description = buildString {
+                append("Pages: ${json.images?.pages?.size ?: 0}\n")
+                append("Favorited by: ${json.numFavorites ?: 0}\n")
+            }
+            result.description = description.trim()
+        }
+        
+        return result
     }
 
     override suspend fun parseIntoMetadata(metadata: NHentaiSearchMetadata, input: Response) {
