@@ -121,7 +121,7 @@ abstract class DelegatedHttpSource(val delegate: HttpSource) : HttpSource() {
     /**
      * Name of the source.
      */
-    final override val name get() = delegate.name
+    override val name get() = delegate.name
 
     // ===> OPTIONAL FIELDS
 

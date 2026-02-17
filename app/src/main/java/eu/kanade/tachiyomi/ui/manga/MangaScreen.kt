@@ -388,7 +388,7 @@ class MangaScreen(
      * @param genreName the search genre to the parent controller
      */
     private suspend fun performGenreSearch(navigator: Navigator, genreName: String, source: Source) {
-        performSearch(navigator, genreName, global = false)
+        navigator.push(BrowseSourceScreen(source.id, genreName))
     }
 
     /**
