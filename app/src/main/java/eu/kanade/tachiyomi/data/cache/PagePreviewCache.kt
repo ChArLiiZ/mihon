@@ -24,7 +24,7 @@ class PagePreviewCache(private val context: Context) {
 
     companion object {
         const val PARAMETER_CACHE_DIRECTORY = "page_preview_disk_cache"
-        const val PARAMETER_APP_VERSION = 1
+        const val PARAMETER_APP_VERSION = 2
         const val PARAMETER_VALUE_COUNT = 1
     }
 

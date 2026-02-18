@@ -124,14 +124,16 @@ fun PagePreviews(
             }
             pagePreviewState is PagePreviewState.Success -> {
                 val itemPerRowCount = floor(maxWidth / 120.dp).toInt()
-                pagePreviewState.pagePreviews.take(rowCount * itemPerRowCount).chunked(itemPerRowCount).forEach {
+                pagePreviewState.pagePreviews.chunked(itemPerRowCount).forEach {
                     PagePreviewRow(
                         onOpenPage = onOpenPage,
                         items = remember(it) { it.toImmutableList() },
                     )
                 }
 
-                PagePreviewMore(onMorePreviewsClicked)
+                if (pagePreviewState.hasNextPage || pagePreviewState.pageCount == null) {
+                    PagePreviewMore(onMorePreviewsClicked)
+                }
             }
             else -> {}
         }
@@ -160,18 +162,20 @@ fun LazyListScope.PagePreviewItems(
             items(
                 key = { "${MangaScreenItem.CHAPTER_PREVIEW_ROW}-$it" },
                 contentType = { MangaScreenItem.CHAPTER_PREVIEW_ROW },
-                items = pagePreviewState.pagePreviews.take(rowCount * itemPerRowCount).chunked(itemPerRowCount),
+                items = pagePreviewState.pagePreviews.chunked(itemPerRowCount),
             ) {
                 PagePreviewRow(
                     onOpenPage = onOpenPage,
                     items = remember(it) { it.toImmutableList() },
                 )
             }
-            item(
-                key = MangaScreenItem.CHAPTER_PREVIEW_MORE,
-                contentType = MangaScreenItem.CHAPTER_PREVIEW_MORE,
-            ) {
-                PagePreviewMore(onMorePreviewsClicked)
+            if (pagePreviewState.hasNextPage || pagePreviewState.pageCount == null) {
+                item(
+                    key = MangaScreenItem.CHAPTER_PREVIEW_MORE,
+                    contentType = MangaScreenItem.CHAPTER_PREVIEW_MORE,
+                ) {
+                    PagePreviewMore(onMorePreviewsClicked)
+                }
             }
         }
         else -> {}

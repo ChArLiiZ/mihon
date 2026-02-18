@@ -1286,7 +1286,7 @@ class EHentai(
                     .toHttpUrl()
                     .newBuilder()
                     .removeAllQueryParameters("nw")
-                    .addQueryParameter("p", (page - 1).toString())
+                    .addQueryParameter("p", page.toString())
                     .build()
                     .toString(),
             ),

@@ -504,11 +504,19 @@ private fun MangaScreenSmallImpl(
                         key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                         contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                     ) {
+                        val previewChapterId = remember(state.chapters) {
+                            state.chapters
+                                .map { it.chapter }
+                                .maxByOrNull { it.sourceOrder }
+                                ?.id
+                        }
                         if (state.pagePreviewState !is PagePreviewState.Unused) {
                             PagePreviews(
                                 pagePreviewState = state.pagePreviewState,
-                                onOpenPage = { page -> onPreviewPageClick(state.firstChapterId, page) },
-                                onMorePreviewsClicked = { /* No-op */ },
+                                onOpenPage = { page ->
+                                    onPreviewPageClick(previewChapterId ?: state.firstChapterId, page)
+                                },
+                                onMorePreviewsClicked = onLoadMorePreviewPages,
                                 rowCount = 2,
                             )
                         } else {
@@ -812,11 +820,19 @@ fun MangaScreenLargeImpl(
                                 key = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                                 contentType = MangaScreenItem.FIRST_CHAPTER_PREVIEW,
                             ) {
+                                val previewChapterId = remember(state.chapters) {
+                                    state.chapters
+                                        .map { it.chapter }
+                                        .maxByOrNull { it.sourceOrder }
+                                        ?.id
+                                }
                                 if (state.pagePreviewState !is PagePreviewState.Unused) {
                                     PagePreviews(
                                         pagePreviewState = state.pagePreviewState,
-                                        onOpenPage = { page -> onPreviewPageClick(state.firstChapterId, page) },
-                                        onMorePreviewsClicked = { /* No-op */ },
+                                        onOpenPage = { page ->
+                                            onPreviewPageClick(previewChapterId ?: state.firstChapterId, page)
+                                        },
+                                        onMorePreviewsClicked = onLoadMorePreviewPages,
                                         rowCount = 2,
                                     )
                                 } else {

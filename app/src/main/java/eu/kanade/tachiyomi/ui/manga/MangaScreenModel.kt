@@ -29,6 +29,7 @@ import eu.kanade.domain.track.interactor.AddTracks
 import eu.kanade.domain.track.interactor.RefreshTracks
 import eu.kanade.domain.track.interactor.TrackChapter
 import eu.kanade.domain.track.model.AutoTrackState
+import eu.kanade.presentation.manga.components.PagePreviewState
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.presentation.manga.DownloadAction
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
@@ -289,37 +290,67 @@ class MangaScreenModel(
      * 從 PagePreviewSource 取得頁面縮圖預覽。
      * 僅 EH/NH 等實作 PagePreviewSource 的來源會使用。
      */
-    private fun fetchSourcePagePreviews(page: Int = 0) {
+    private fun fetchSourcePagePreviews(page: Int = 0, append: Boolean = false) {
         val state = successState ?: return
         screenModelScope.launchIO {
-            updateSuccessState {
-                it.copy(pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Loading)
+            updateSuccessState { current ->
+                if (append) {
+                    current.copy(isLoadingSourcePreview = true)
+                } else {
+                    current.copy(
+                        pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Loading,
+                        isLoadingSourcePreview = true,
+                    )
+                }
             }
             val result = getPagePreviews.await(state.manga, state.source, page)
             when (result) {
                 is eu.kanade.domain.manga.interactor.GetPagePreviews.Result.Success -> {
-                    updateSuccessState {
-                        it.copy(
-                            pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Success(
-                                pagePreviews = result.pagePreviews,
-                                hasNextPage = result.hasNextPage,
+                    updateSuccessState { current ->
+                        val mergedPreviews = if (append) {
+                            val existing = (current.pagePreviewState as? PagePreviewState.Success)
+                                ?.pagePreviews
+                                .orEmpty()
+                            (existing + result.pagePreviews).distinctBy { it.index }
+                        } else {
+                            result.pagePreviews
+                        }
+                        val hasNext = if (result.pageCount != null) {
+                            page + 1 < result.pageCount
+                        } else {
+                            result.hasNextPage
+                        } && result.pagePreviews.isNotEmpty()
+                        current.copy(
+                            pagePreviewState = PagePreviewState.Success(
+                                pagePreviews = mergedPreviews,
+                                hasNextPage = hasNext,
                                 pageCount = result.pageCount,
                             ),
+                            sourcePagePreviewPage = page,
+                            isLoadingSourcePreview = false,
                         )
                     }
                 }
                 is eu.kanade.domain.manga.interactor.GetPagePreviews.Result.Error -> {
                     updateSuccessState {
                         it.copy(
-                            pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Error(result.error),
+                            pagePreviewState = PagePreviewState.Error(result.error),
+                            isLoadingSourcePreview = false,
                         )
+                    }
+                    if (!append) {
+                        fetchFirstChapterPreview()
                     }
                 }
                 is eu.kanade.domain.manga.interactor.GetPagePreviews.Result.Unused -> {
                     updateSuccessState {
                         it.copy(
-                            pagePreviewState = eu.kanade.presentation.manga.components.PagePreviewState.Unused,
+                            pagePreviewState = PagePreviewState.Unused,
+                            isLoadingSourcePreview = false,
                         )
+                    }
+                    if (!append) {
+                        fetchFirstChapterPreview()
                     }
                 }
             }
@@ -562,6 +593,17 @@ class MangaScreenModel(
 
     fun loadMorePreviewPages() {
         val state = successState ?: return
+
+        val sourcePreviewState = state.pagePreviewState as? PagePreviewState.Success
+        if (sourcePreviewState != null) {
+            if (state.isLoadingSourcePreview) return
+            fetchSourcePagePreviews(
+                page = state.sourcePagePreviewPage + 1,
+                append = true,
+            )
+            return
+        }
+
         if (state.isLoadingPreview) return
         if (state.firstChapterVisibleCount >= state.firstChapterTotalPageCount) return
 
@@ -1603,8 +1645,9 @@ class MangaScreenModel(
             // Feature 4: EH/NH metadata
             val flatMetadata: exh.metadata.metadata.base.FlatMetadata? = null,
             // Feature 5: Source page previews (EH/NH PagePreviewSource)
-            val pagePreviewState: eu.kanade.presentation.manga.components.PagePreviewState =
-                eu.kanade.presentation.manga.components.PagePreviewState.Unused,
+            val pagePreviewState: PagePreviewState = PagePreviewState.Unused,
+            val sourcePagePreviewPage: Int = 0,
+            val isLoadingSourcePreview: Boolean = false,
         ) : State {
             val processedChapters by lazy {
                 chapters.applyFilters(manga).toList()
