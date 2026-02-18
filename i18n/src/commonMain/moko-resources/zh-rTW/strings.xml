@@ -113,6 +113,11 @@
     <string name="services">歷程平臺</string>
     <string name="pref_create_backup">建立備份</string>
     <string name="pref_restore_backup">還原備份</string>
+    <string name="pref_backup_destination">自動備份目的地</string>
+    <string name="pref_backup_google_drive_location">Google Drive 備份資料夾</string>
+    <string name="google_drive">Google Drive</string>
+    <string name="backup_google_drive_folder_invalid">請選擇 Google Drive 的資料夾</string>
+    <string name="backup_google_drive_app_not_found">找不到 Google Drive 應用程式，改用系統選擇器</string>
     <string name="pref_backup_interval">自動備份頻率</string>
     <string name="backup_created">已建立備份</string>
     <string name="restore_completed">還原成功</string>

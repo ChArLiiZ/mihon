@@ -11,6 +11,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkerParameters
@@ -78,6 +79,14 @@ class BackupCreateJob(private val context: Context, workerParams: WorkerParamete
     }
 
     private fun getAutomaticBackupLocation(): Uri? {
+        val backupPreferences = Injekt.get<BackupPreferences>()
+        if (backupPreferences.autoBackupDestination().get() == BackupPreferences.AUTO_BACKUP_DESTINATION_GOOGLE_DRIVE) {
+            return backupPreferences.autoBackupDriveDirectoryUri()
+                .get()
+                .takeIf { it.isNotBlank() }
+                ?.toUri()
+        }
+
         val storageManager = Injekt.get<StorageManager>()
         return storageManager.getAutomaticBackupsDirectory()?.uri
     }
@@ -91,9 +100,19 @@ class BackupCreateJob(private val context: Context, workerParams: WorkerParamete
             val backupPreferences = Injekt.get<BackupPreferences>()
             val interval = prefInterval ?: backupPreferences.backupInterval().get()
             if (interval > 0) {
-                val constraints = Constraints(
-                    requiresBatteryNotLow = true,
-                )
+                val isDriveDestination =
+                    backupPreferences.autoBackupDestination().get() ==
+                        BackupPreferences.AUTO_BACKUP_DESTINATION_GOOGLE_DRIVE
+                val driveDirectoryUri = backupPreferences.autoBackupDriveDirectoryUri().get()
+                if (isDriveDestination && driveDirectoryUri.isBlank()) {
+                    context.workManager.cancelUniqueWork(TAG_AUTO)
+                    return
+                }
+
+                val constraints = Constraints.Builder()
+                    .setRequiresBatteryNotLow(true)
+                    .setRequiredNetworkType(if (isDriveDestination) NetworkType.CONNECTED else NetworkType.NOT_REQUIRED)
+                    .build()
 
                 val request = PeriodicWorkRequestBuilder<BackupCreateJob>(
                     interval.toLong(),

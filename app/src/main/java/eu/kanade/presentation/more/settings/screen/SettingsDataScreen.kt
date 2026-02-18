@@ -56,6 +56,7 @@ import eu.kanade.tachiyomi.data.export.LibraryExporter
 import eu.kanade.tachiyomi.data.export.LibraryExporter.ExportOptions
 import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.toast
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +83,8 @@ object SettingsDataScreen : SearchableSettings {
 
     val restorePreferenceKeyString = MR.strings.label_backup
     const val HELP_URL = "https://mihon.app/docs/faq/storage"
+    private const val GOOGLE_DRIVE_PACKAGE = "com.google.android.apps.docs"
+    private const val GOOGLE_DRIVE_AUTHORITY = "com.google.android.apps.docs.storage"
 
     @ReadOnlyComposable
     @Composable
@@ -188,6 +191,7 @@ object SettingsDataScreen : SearchableSettings {
         val navigator = LocalNavigator.currentOrThrow
 
         val lastAutoBackup by backupPreferences.lastAutoBackupTimestamp().collectAsState()
+        val autoBackupDestination by backupPreferences.autoBackupDestination().collectAsState()
 
         val chooseBackup = rememberLauncherForActivityResult(
             object : ActivityResultContracts.GetContent() {
@@ -205,9 +209,43 @@ object SettingsDataScreen : SearchableSettings {
             navigator.push(RestoreBackupScreen(it.toString()))
         }
 
-        return Preference.PreferenceGroup(
-            title = stringResource(MR.strings.label_backup),
-            preferenceItems = persistentListOf(
+        val onDriveDirectoryChosen: (Uri?) -> Unit = onDriveDirectoryChosen@{ uri ->
+            if (uri == null) return@onDriveDirectoryChosen
+            if (uri.authority != GOOGLE_DRIVE_AUTHORITY) {
+                context.toast(MR.strings.backup_google_drive_folder_invalid)
+                return@onDriveDirectoryChosen
+            }
+
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, flags)
+            } catch (e: SecurityException) {
+                logcat(LogPriority.ERROR, e)
+                context.toast(MR.strings.file_picker_uri_permission_unsupported)
+            }
+
+            backupPreferences.autoBackupDriveDirectoryUri().set(uri.toString())
+            BackupCreateJob.setupTask(context)
+        }
+
+        val pickDriveBackupDirectoryFallback = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+            onResult = onDriveDirectoryChosen,
+        )
+
+        val pickDriveBackupDirectory = rememberLauncherForActivityResult(
+            contract = object : ActivityResultContracts.OpenDocumentTree() {
+                override fun createIntent(context: Context, input: Uri?): Intent {
+                    return super.createIntent(context, input)
+                        .setPackage(GOOGLE_DRIVE_PACKAGE)
+                }
+            },
+            onResult = onDriveDirectoryChosen,
+        )
+
+        val backupPreferenceItems = buildList<Preference.PreferenceItem<out Any, out Any>> {
+            add(
                 // Manual actions
                 Preference.PreferenceItem.CustomPreference(
                     title = stringResource(restorePreferenceKeyString),
@@ -251,8 +289,44 @@ object SettingsDataScreen : SearchableSettings {
                         },
                     )
                 },
-
+            )
+            add(
                 // Automatic backups
+                Preference.PreferenceItem.ListPreference(
+                    preference = backupPreferences.autoBackupDestination(),
+                    entries = persistentMapOf(
+                        BackupPreferences.AUTO_BACKUP_DESTINATION_LOCAL to stringResource(MR.strings.label_local),
+                        BackupPreferences.AUTO_BACKUP_DESTINATION_GOOGLE_DRIVE to
+                            stringResource(MR.strings.google_drive),
+                    ),
+                    title = stringResource(MR.strings.pref_backup_destination),
+                    onValueChanged = {
+                        BackupCreateJob.setupTask(context)
+                        true
+                    },
+                ),
+            )
+            if (autoBackupDestination == BackupPreferences.AUTO_BACKUP_DESTINATION_GOOGLE_DRIVE) {
+                add(
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(MR.strings.pref_backup_google_drive_location),
+                        subtitle = storageLocationText(backupPreferences.autoBackupDriveDirectoryUri()),
+                        onClick = {
+                            try {
+                                pickDriveBackupDirectory.launch(null)
+                            } catch (e: ActivityNotFoundException) {
+                                context.toast(MR.strings.backup_google_drive_app_not_found)
+                                try {
+                                    pickDriveBackupDirectoryFallback.launch(null)
+                                } catch (fallbackError: ActivityNotFoundException) {
+                                    context.toast(MR.strings.file_picker_error)
+                                }
+                            }
+                        },
+                    ),
+                )
+            }
+            add(
                 Preference.PreferenceItem.ListPreference(
                     preference = backupPreferences.backupInterval(),
                     entries = persistentMapOf(
@@ -269,11 +343,18 @@ object SettingsDataScreen : SearchableSettings {
                         true
                     },
                 ),
+            )
+            add(
                 Preference.PreferenceItem.InfoPreference(
                     stringResource(MR.strings.backup_info) + "\n\n" +
                         stringResource(MR.strings.last_auto_backup_info, relativeTimeSpanString(lastAutoBackup)),
                 ),
-            ),
+            )
+        }
+
+        return Preference.PreferenceGroup(
+            title = stringResource(MR.strings.label_backup),
+            preferenceItems = backupPreferenceItems.toImmutableList(),
         )
     }
 
