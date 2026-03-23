@@ -167,49 +167,52 @@ fun BrowseSourceNHentaiListItem(
                     }
                 }
 
-                // Category, Pages and Favorites
+                // Bottom row: category on left, page count + favorites on right
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom,
                 ) {
+                    // Category badge (left)
+                    val category = metadata?.tags
+                        ?.firstOrNull {
+                            it.namespace == NHentaiSearchMetadata.NHENTAI_CATEGORIES_NAMESPACE
+                        }
+                        ?.name
+                        ?: manga.genre?.firstOrNull()
+                    if (category != null) {
+                        val color = SourceTagsUtil.getGenreColor(category)?.color
+                        Text(
+                            text = category.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = if (color != null) {
+                                Color(color)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier
+                                .background(
+                                    color = if (color != null) {
+                                        Color(color).copy(alpha = 0.2f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    shape = RoundedCornerShape(4.dp),
+                                )
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+
+                    // Page count + Favorites (right, fixed position)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Category badge
-                        val category = metadata?.tags
-                            ?.firstOrNull {
-                                it.namespace == NHentaiSearchMetadata.NHENTAI_CATEGORIES_NAMESPACE
-                            }
-                            ?.name
-                            ?: manga.genre?.firstOrNull()
-                        if (category != null) {
-                            val color = SourceTagsUtil.getGenreColor(category)?.color
-                            Text(
-                                text = category.uppercase(),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                color = if (color != null) {
-                                    Color(color)
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier
-                                    .background(
-                                        color = if (color != null) {
-                                            Color(color).copy(alpha = 0.2f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                        },
-                                        shape = RoundedCornerShape(4.dp),
-                                    )
-                                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                            )
-                        }
-
-                        // Page count: prefer metadata, fallback to description
+                        // Page count
                         val pageCount = metadata?.pageImageTypes?.size
                             ?: descPageCount
                             ?: 0
@@ -235,26 +238,26 @@ fun BrowseSourceNHentaiListItem(
                                 )
                             }
                         }
-                    }
 
-                    // Favorites count: prefer metadata, fallback to description
-                    val favorites = metadata?.favoritesCount
-                        ?: descFavorites
-                    if (favorites != null && favorites > 0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                            Text(
-                                text = favorites.toString(),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                        // Favorites count
+                        val favorites = metadata?.favoritesCount
+                            ?: descFavorites
+                        if (favorites != null && favorites > 0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    text = favorites.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                         }
                     }
                 }

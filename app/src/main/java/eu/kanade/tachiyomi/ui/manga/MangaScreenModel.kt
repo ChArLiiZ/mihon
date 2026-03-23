@@ -567,17 +567,33 @@ class MangaScreenModel(
                 val pages = state.source.getPageList(firstChapter.toSChapter())
                 firstChapterAllPages = pages
 
-                val resolvedPages = resolvePageImageUrls(state.source, pages.take(10), firstChapter.id)
-
+                // Set up initial state with chapter info
                 updateSuccessState {
                     it.copy(
                         firstChapterId = firstChapter.id,
-                        firstChapterPages = resolvedPages,
                         firstChapterTotalPageCount = pages.size,
-                        firstChapterVisibleCount = resolvedPages.size.coerceAtMost(pages.size),
-                        isLoadingPreview = false,
                     )
                 }
+
+                // Resolve pages progressively — update UI after each page loads
+                val pagesToLoad = pages.take(10)
+                for (page in pagesToLoad) {
+                    val resolved = resolvePageImageUrls(
+                        state.source,
+                        listOf(page),
+                        firstChapter.id,
+                    )
+                    updateSuccessState {
+                        val updatedPages = it.firstChapterPages + resolved
+                        it.copy(
+                            firstChapterPages = updatedPages,
+                            firstChapterVisibleCount = updatedPages.size
+                                .coerceAtMost(it.firstChapterTotalPageCount),
+                        )
+                    }
+                }
+
+                updateSuccessState { it.copy(isLoadingPreview = false) }
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 logcat(LogPriority.ERROR, e) { "Failed to fetch first chapter preview" }
@@ -613,16 +629,21 @@ class MangaScreenModel(
                 val currentCount = state.firstChapterVisibleCount
                 val nextPages = firstChapterAllPages.drop(currentCount).take(10)
                 val chapterId = state.firstChapterId ?: 0L
-                val resolvedPages = resolvePageImageUrls(state.source, nextPages, chapterId)
 
-                updateSuccessState {
-                    it.copy(
-                        firstChapterPages = it.firstChapterPages + resolvedPages,
-                        firstChapterVisibleCount = (currentCount + resolvedPages.size)
-                            .coerceAtMost(it.firstChapterTotalPageCount),
-                        isLoadingPreview = false,
-                    )
+                // Resolve pages progressively — update UI after each page loads
+                for (page in nextPages) {
+                    val resolved = resolvePageImageUrls(state.source, listOf(page), chapterId)
+                    updateSuccessState {
+                        val updatedPages = it.firstChapterPages + resolved
+                        it.copy(
+                            firstChapterPages = updatedPages,
+                            firstChapterVisibleCount = updatedPages.size
+                                .coerceAtMost(it.firstChapterTotalPageCount),
+                        )
+                    }
                 }
+
+                updateSuccessState { it.copy(isLoadingPreview = false) }
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 logcat(LogPriority.ERROR, e) { "Failed to load more preview pages" }
