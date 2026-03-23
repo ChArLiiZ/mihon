@@ -55,9 +55,6 @@ import uy.kohesive.injekt.api.get
 import java.time.Instant
 import eu.kanade.tachiyomi.source.model.Filter as SourceModelFilter
 
-private const val EH_SOURCE_ID = 6901L
-private const val EXH_SOURCE_ID = 6902L
-
 class BrowseSourceScreenModel(
     private val sourceId: Long,
     listingQuery: String?,
@@ -323,7 +320,9 @@ class BrowseSourceScreenModel(
     // region Filter Presets
 
     val hasFilterPresets: Boolean
-        get() = sourceId == EH_SOURCE_ID || sourceId == EXH_SOURCE_ID
+        get() = sourceId == exh.source.EH_SOURCE_ID ||
+            sourceId == exh.source.EXH_SOURCE_ID ||
+            sourceId in exh.source.nHentaiSourceIds
 
     private val filterPresetManager: FilterPresetManager? by lazy {
         if (hasFilterPresets) FilterPresetManager(context, sourceId) else null

@@ -47,27 +47,31 @@ import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastMap
 import eu.kanade.presentation.components.relativeDateText
-import exh.ui.metadata.adapters.EHentaiDescription
 import eu.kanade.presentation.manga.components.ChapterDownloadAction
 import eu.kanade.presentation.manga.components.ChapterHeader
 import eu.kanade.presentation.manga.components.ExpandableMangaDescription
 import eu.kanade.presentation.manga.components.FirstChapterPreviewGallery
-import eu.kanade.presentation.manga.components.PagePreviewState
-import eu.kanade.presentation.manga.components.PagePreviews
-import eu.kanade.presentation.manga.components.SearchMetadataChips
-import eu.kanade.presentation.manga.components.SimilarMangaSection
 import eu.kanade.presentation.manga.components.MangaActionRow
 import eu.kanade.presentation.manga.components.MangaBottomActionMenu
 import eu.kanade.presentation.manga.components.MangaChapterListItem
 import eu.kanade.presentation.manga.components.MangaInfoBox
 import eu.kanade.presentation.manga.components.MangaToolbar
 import eu.kanade.presentation.manga.components.MissingChapterCountListItem
+import eu.kanade.presentation.manga.components.PagePreviewState
+import eu.kanade.presentation.manga.components.PagePreviews
+import eu.kanade.presentation.manga.components.SearchMetadataChips
+import eu.kanade.presentation.manga.components.SimilarMangaSection
 import eu.kanade.presentation.util.formatChapterNumber
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.source.getNameForMangaInfo
 import eu.kanade.tachiyomi.ui.manga.ChapterList
 import eu.kanade.tachiyomi.ui.manga.MangaScreenModel
 import eu.kanade.tachiyomi.util.system.copyToClipboard
+import exh.source.isEhBasedSource
+import exh.source.isMetadataSource
+import exh.source.isNhentaiSource
+import exh.ui.metadata.adapters.EHentaiDescription
+import exh.ui.metadata.adapters.NHentaiDescription
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.service.missingChaptersCount
 import tachiyomi.domain.library.service.LibraryPreferences
@@ -444,15 +448,22 @@ private fun MangaScreenSmallImpl(
                     }
 
                     item(
-                        key = "EHentaiDescription",
-                        contentType = "EHentaiDescription",
+                        key = "MetadataDescription",
+                        contentType = "MetadataDescription",
                     ) {
                         if (state.flatMetadata != null) {
-                            EHentaiDescription(
-                                state = state,
-                                openMetadataViewer = { /* TODO */ },
-                                search = { onSearch(it, false) },
-                            )
+                            when {
+                                state.source.isEhBasedSource() -> EHentaiDescription(
+                                    state = state,
+                                    openMetadataViewer = { /* TODO */ },
+                                    search = { onSearch(it, false) },
+                                )
+                                state.source.isNhentaiSource() -> NHentaiDescription(
+                                    state = state,
+                                    openMetadataViewer = { /* TODO */ },
+                                    search = { onSearch(it, false) },
+                                )
+                            }
                         }
                     }
 
@@ -460,10 +471,13 @@ private fun MangaScreenSmallImpl(
                         key = MangaScreenItem.DESCRIPTION_WITH_TAG,
                         contentType = MangaScreenItem.DESCRIPTION_WITH_TAG,
                     ) {
+                        val hasNamespaceTags = state.flatMetadata != null &&
+                            state.source.isMetadataSource()
                         ExpandableMangaDescription(
                             defaultExpandState = state.isFromSource,
                             description = state.manga.description,
-                            tagsProvider = { state.manga.genre },
+                            // Hide generic genre tags when namespace-grouped tags are shown
+                            tagsProvider = { if (hasNamespaceTags) null else state.manga.genre },
                             notes = state.manga.notes,
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
@@ -510,6 +524,7 @@ private fun MangaScreenSmallImpl(
                                 .maxByOrNull { it.sourceOrder }
                                 ?.id
                         }
+                        val isNhentai = state.source.isNhentaiSource()
                         if (state.pagePreviewState !is PagePreviewState.Unused) {
                             PagePreviews(
                                 pagePreviewState = state.pagePreviewState,
@@ -531,6 +546,7 @@ private fun MangaScreenSmallImpl(
                                 onPageClick = { pageIndex ->
                                     onPreviewPageClick(state.firstChapterId, pageIndex)
                                 },
+                                showHeader = !isNhentai,
                             )
                         }
                     }
@@ -763,16 +779,26 @@ fun MangaScreenLargeImpl(
                             onReadLaterClicked = onReadLaterClicked,
                         )
                         if (state.flatMetadata != null) {
-                            EHentaiDescription(
-                                state = state,
-                                openMetadataViewer = { /* TODO */ },
-                                search = { onSearch(it, false) },
-                            )
+                            when {
+                                state.source.isEhBasedSource() -> EHentaiDescription(
+                                    state = state,
+                                    openMetadataViewer = { /* TODO */ },
+                                    search = { onSearch(it, false) },
+                                )
+                                state.source.isNhentaiSource() -> NHentaiDescription(
+                                    state = state,
+                                    openMetadataViewer = { /* TODO */ },
+                                    search = { onSearch(it, false) },
+                                )
+                            }
                         }
+                        val hasNamespaceTags = state.flatMetadata != null &&
+                            state.source.isMetadataSource()
                         ExpandableMangaDescription(
                             defaultExpandState = true,
                             description = state.manga.description,
-                            tagsProvider = { state.manga.genre },
+                            // Hide generic genre tags when namespace-grouped tags are shown
+                            tagsProvider = { if (hasNamespaceTags) null else state.manga.genre },
                             notes = state.manga.notes,
                             onTagSearch = onTagSearch,
                             onCopyTagToClipboard = onCopyTagToClipboard,
@@ -826,6 +852,7 @@ fun MangaScreenLargeImpl(
                                         .maxByOrNull { it.sourceOrder }
                                         ?.id
                                 }
+                                val isNhentai2 = state.source.isNhentaiSource()
                                 if (state.pagePreviewState !is PagePreviewState.Unused) {
                                     PagePreviews(
                                         pagePreviewState = state.pagePreviewState,
@@ -847,6 +874,7 @@ fun MangaScreenLargeImpl(
                                         onPageClick = { pageIndex ->
                                             onPreviewPageClick(state.firstChapterId, pageIndex)
                                         },
+                                        showHeader = !isNhentai2,
                                     )
                                 }
                             }

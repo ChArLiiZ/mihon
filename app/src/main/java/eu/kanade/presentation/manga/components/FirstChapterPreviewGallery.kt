@@ -37,10 +37,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import eu.kanade.tachiyomi.ui.manga.PagePreview
-import java.io.File
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
+import java.io.File
 
 private val CoverPlaceholderColor = androidx.compose.ui.graphics.Color(0x1F888888)
 
@@ -55,41 +55,47 @@ fun FirstChapterPreviewGallery(
     onLoadMore: () -> Unit,
     onPageClick: (pageIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
+    showHeader: Boolean = true,
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(!showHeader) }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(animationSpec = spring()),
     ) {
-        // Header row - clickable to expand/collapse
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    expanded = !expanded
-                    if (expanded && pages.isEmpty() && !isLoading) {
-                        onExpand()
+        // Header row - clickable to expand/collapse (hidden when showHeader = false)
+        if (showHeader) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        expanded = !expanded
+                        if (expanded && pages.isEmpty() && !isLoading) {
+                            onExpand()
+                        }
                     }
-                }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(MR.strings.first_chapter_preview),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(MR.strings.first_chapter_preview),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else if (pages.isEmpty() && !isLoading) {
+            // Auto-trigger load when header is hidden
+            androidx.compose.runtime.LaunchedEffect(Unit) { onExpand() }
         }
 
-        // Expanded content
+        // Content (always visible when showHeader = false)
         if (expanded) {
             when {
                 // Loading state (initial load)
@@ -186,7 +192,7 @@ fun FirstChapterPreviewGallery(
                                 OutlinedButton(onClick = onLoadMore) {
                                     Text(
                                         text = stringResource(MR.strings.load_more) +
-                                            " (${visibleCount}/${totalPageCount})",
+                                            " ($visibleCount/$totalPageCount)",
                                     )
                                 }
                             }

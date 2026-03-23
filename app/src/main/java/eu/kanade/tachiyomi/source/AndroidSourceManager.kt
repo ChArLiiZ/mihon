@@ -10,6 +10,7 @@ import exh.log.xLogD
 import exh.source.EH_SOURCE_ID
 import exh.source.EXH_SOURCE_ID
 import exh.source.EnhancedHttpSource
+import exh.source.nHentaiSourceIds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -73,15 +74,27 @@ class AndroidSourceManager(
                     registerStubSource(StubSource.from(ehSource))
                     registerStubSource(StubSource.from(exhSource))
 
+                    val nhentaiIds = mutableListOf<Long>()
+
                     extensions.forEach { extension ->
                         extension.sources.forEach {
                             val wrappedSource = it.toInternalSource()
                             if (wrappedSource != null) {
                                 mutableMap[it.id] = wrappedSource
+                                // Track NHentai source IDs for UI detection
+                                if (wrappedSource is EnhancedHttpSource &&
+                                    wrappedSource.enhancedSource is NHentai
+                                ) {
+                                    nhentaiIds.add(it.id)
+                                }
                             }
                             registerStubSource(StubSource.from(it))
                         }
                     }
+
+                    // Populate global source ID lists so isNhentaiSource() works
+                    nHentaiSourceIds = nhentaiIds.toList()
+
                     sourcesMapFlow.value = mutableMap
                     _isInitialized.value = true
                 }

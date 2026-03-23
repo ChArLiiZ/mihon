@@ -308,7 +308,9 @@ class MangaScreen(
 
     private fun continueReading(context: Context, unreadChapter: Chapter?) {
         if (unreadChapter != null) {
-            context.startActivity(ReaderActivity.newIntent(context, unreadChapter.mangaId, unreadChapter.id, forceResume = true))
+            context.startActivity(
+                ReaderActivity.newIntent(context, unreadChapter.mangaId, unreadChapter.id, forceResume = true),
+            )
         }
     }
 

@@ -12,6 +12,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.paging.LoadState
@@ -20,11 +21,14 @@ import eu.kanade.presentation.browse.components.BrowseSourceComfortableGrid
 import eu.kanade.presentation.browse.components.BrowseSourceCompactGrid
 import eu.kanade.presentation.browse.components.BrowseSourceEHentaiList
 import eu.kanade.presentation.browse.components.BrowseSourceList
+import eu.kanade.presentation.browse.components.BrowseSourceNHentaiList
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.util.formattedMessage
 import eu.kanade.tachiyomi.source.Source
 import exh.metadata.metadata.RaisedSearchMetadata
+import exh.source.ExhPreferences
 import exh.source.isEhBasedSource
+import exh.source.isNhentaiSource
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.StateFlow
 import tachiyomi.core.common.i18n.stringResource
@@ -38,6 +42,8 @@ import tachiyomi.presentation.core.screens.EmptyScreen
 import tachiyomi.presentation.core.screens.EmptyScreenAction
 import tachiyomi.presentation.core.screens.LoadingScreen
 import tachiyomi.source.local.LocalSource
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 @Composable
 fun BrowseSourceContent(
@@ -120,8 +126,16 @@ fun BrowseSourceContent(
         return
     }
 
+    val exhPreferences = remember { Injekt.get<ExhPreferences>() }
     if (source?.isEhBasedSource() == true) {
         BrowseSourceEHentaiList(
+            pagingItems = mangaList,
+            contentPadding = contentPadding,
+            onMangaClick = onMangaClick,
+            onMangaLongClick = onMangaLongClick,
+        )
+    } else if (source?.isNhentaiSource() == true && exhPreferences.enhancedNHentaiView().get()) {
+        BrowseSourceNHentaiList(
             pagingItems = mangaList,
             contentPadding = contentPadding,
             onMangaClick = onMangaClick,

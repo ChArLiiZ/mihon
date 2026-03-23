@@ -67,4 +67,9 @@ class ExhPreferences(
     )
 
     fun enhancedEHentaiView() = preferenceStore.getBoolean("enhanced_e_hentai_view", true)
+
+    // NHentai preferences
+    fun nhentaiTitleDisplay() = preferenceStore.getString("nhentai_title_display", "full")
+
+    fun enhancedNHentaiView() = preferenceStore.getBoolean("enhanced_nhentai_view", true)
 }
