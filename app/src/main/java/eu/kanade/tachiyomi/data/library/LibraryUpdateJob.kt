@@ -384,7 +384,9 @@ class LibraryUpdateJob(private val context: Context, workerParams: WorkerParamet
                 currentCompleted,
                 mangaToUpdate.size,
             )
-        } else if (now2 - lastTime2 >= NOTIFICATION_THROTTLE_MS && lastNotificationTime.compareAndSet(lastTime2, now2)) {
+        } else if (now2 - lastTime2 >= NOTIFICATION_THROTTLE_MS &&
+            lastNotificationTime.compareAndSet(lastTime2, now2)
+        ) {
             notifier.showProgressNotification(
                 updatingManga,
                 currentCompleted,

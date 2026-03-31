@@ -82,4 +82,3 @@ fun SManga.copy(
     it.initialized = initialized
 }
 // SY <--
-

@@ -284,7 +284,9 @@ fun ChangeCategoryDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(if (isSubCategory) Modifier.padding(start = MaterialTheme.padding.large) else Modifier)
+                            .then(
+                                if (isSubCategory) Modifier.padding(start = MaterialTheme.padding.large) else Modifier,
+                            )
                             .clickable { onChange(checkbox) },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

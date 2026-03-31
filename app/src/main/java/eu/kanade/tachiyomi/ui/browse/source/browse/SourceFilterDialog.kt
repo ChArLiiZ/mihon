@@ -174,7 +174,6 @@ private fun FilterItem(filter: Filter<*>, onUpdate: () -> Unit) {
                 onUpdate()
             }
         }
-
     }
 }
 

@@ -63,8 +63,6 @@ class EHentaiSearchMetadata : RaisedSearchMetadata() {
             ?.takeIf { Injekt.get<DelegateSourcePreferences>().useJapaneseTitle().get() } // todo
             ?: title
 
-
-
         // KMK -->
         val description = StringBuilder()
         description.append("id: $gId")
@@ -77,7 +75,13 @@ class EHentaiSearchMetadata : RaisedSearchMetadata() {
         description.append("\n")
         description.append("size: ${size?.let { MetadataUtil.humanReadableByteCount(it, true) }}")
         description.append("\n")
-        description.append("posted: ${datePosted?.let { MetadataUtil.EX_DATE_FORMAT.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(it), ZoneId.systemDefault())) }}")
+        description.append(
+            "posted: ${datePosted?.let {
+                MetadataUtil.EX_DATE_FORMAT.format(
+                    ZonedDateTime.ofInstant(Instant.ofEpochMilli(it), ZoneId.systemDefault()),
+                )
+            }}",
+        )
         description.append("\n")
         description.append("visible: $visible")
         description.append("\n")

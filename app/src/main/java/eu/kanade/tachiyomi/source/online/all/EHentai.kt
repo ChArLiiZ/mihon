@@ -131,13 +131,13 @@ class EHentai(
     private fun getCacheKey(query: String, page: Int, filters: FilterList): String {
         return "$query|$page|${filters.hashCode()}"
     }
-    
 
 
 
-    
 
-    
+
+
+
 
     /**
      * Gallery list entry
@@ -260,7 +260,7 @@ class EHentai(
             select(".searchnav >div > a")
                 .any { "next" in it.attr("href") }
         }
-        
+
         // Force next page if we have results. Safe check for empty list.
         val forcedHasNextPage = hasNextPage || parsedMangas.isNotEmpty()
 
@@ -582,7 +582,7 @@ class EHentai(
     override suspend fun getSearchManga(page: Int, query: String, filters: FilterList): MangasPage {
         return urlImportFetchSearchMangaSuspend(context, query) {
             val result = super<HttpSource>.getSearchManga(page, query, filters)
-            
+
             if (result is MetadataMangasPage && result.nextKey != null) {
                  nextPageCache[getCacheKey(query, page + 1, filters)] = result.nextKey.toString()
             }

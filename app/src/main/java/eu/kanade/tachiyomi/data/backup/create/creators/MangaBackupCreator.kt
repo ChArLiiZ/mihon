@@ -4,9 +4,13 @@ import eu.kanade.tachiyomi.data.backup.create.BackupOptions
 import eu.kanade.tachiyomi.data.backup.models.BackupChapter
 import eu.kanade.tachiyomi.data.backup.models.BackupHistory
 import eu.kanade.tachiyomi.data.backup.models.BackupManga
-import eu.kanade.tachiyomi.data.backup.models.backupChapterMapper
 import eu.kanade.tachiyomi.data.backup.models.backupTrackMapper
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import tachiyomi.data.DatabaseHandler
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.history.interactor.GetHistory
@@ -21,34 +25,75 @@ class MangaBackupCreator(
 ) {
 
     suspend operator fun invoke(mangas: List<Manga>, options: BackupOptions): List<BackupManga> {
-        return mangas.map {
-            backupManga(it, options)
+        return coroutineScope {
+            val semaphore = Semaphore(10)
+            mangas.map { manga ->
+                async {
+                    semaphore.withPermit { backupManga(manga, options) }
+                }
+            }.awaitAll()
         }
     }
 
     private suspend fun backupManga(manga: Manga, options: BackupOptions): BackupManga {
-        // Entry for this manga
         val mangaObject = manga.toBackupManga()
 
         mangaObject.excludedScanlators = handler.awaitList {
             excluded_scanlatorsQueries.getExcludedScanlatorsByMangaId(manga.id)
         }
 
-        if (options.chapters) {
-            // Backup all the chapters
-            handler.awaitList {
-                chaptersQueries.getChaptersByMangaId(
-                    mangaId = manga.id,
-                    applyScanlatorFilter = 0, // false
-                    mapper = backupChapterMapper,
-                )
+        // Query chapters once if needed by either chapters or history backup,
+        // returning (chapterId, BackupChapter) so both consumers can reuse it
+        val chapterData: List<Pair<Long, BackupChapter>>? =
+            if (options.chapters || options.history) {
+                handler.awaitList {
+                    chaptersQueries.getChaptersByMangaId(
+                        mangaId = manga.id,
+                        applyScanlatorFilter = 0,
+                    ) {
+                            id,
+                            _,
+                            url,
+                            name,
+                            scanlator,
+                            read,
+                            bookmark,
+                            lastPageRead,
+                            chapterNumber,
+                            sourceOrder,
+                            dateFetch,
+                            dateUpload,
+                            lastModifiedAt,
+                            version,
+                            _,
+                        ->
+                        id to BackupChapter(
+                            url = url,
+                            name = name,
+                            chapterNumber = chapterNumber.toFloat(),
+                            scanlator = scanlator,
+                            read = read,
+                            bookmark = bookmark,
+                            lastPageRead = lastPageRead,
+                            dateFetch = dateFetch,
+                            dateUpload = dateUpload,
+                            sourceOrder = sourceOrder,
+                            lastModifiedAt = lastModifiedAt,
+                            version = version,
+                        )
+                    }
+                }
+            } else {
+                null
             }
+
+        if (options.chapters && chapterData != null) {
+            chapterData.map { it.second }
                 .takeUnless(List<BackupChapter>::isEmpty)
                 ?.let { mangaObject.chapters = it }
         }
 
         if (options.categories) {
-            // Backup categories for this manga
             val categoriesForManga = getCategories.await(manga.id)
             if (categoriesForManga.isNotEmpty()) {
                 mangaObject.categories = categoriesForManga.map { it.order }
@@ -62,12 +107,15 @@ class MangaBackupCreator(
             }
         }
 
-        if (options.history) {
+        if (options.history && chapterData != null) {
             val historyByMangaId = getHistory.await(manga.id)
             if (historyByMangaId.isNotEmpty()) {
-                val history = historyByMangaId.map { history ->
-                    val chapter = handler.awaitOne { chaptersQueries.getChapterById(history.chapterId) }
-                    BackupHistory(chapter.url, history.readAt?.time ?: 0L, history.readDuration)
+                val chapterUrlById = chapterData.associate { (id, ch) -> id to ch.url }
+
+                val history = historyByMangaId.mapNotNull { h ->
+                    chapterUrlById[h.chapterId]?.let { url ->
+                        BackupHistory(url, h.readAt?.time ?: 0L, h.readDuration)
+                    }
                 }
                 if (history.isNotEmpty()) {
                     mangaObject.history = history

@@ -106,10 +106,16 @@ class AppModule(val app: Application) : InjektModule {
                                 FOREIGN KEY(manga_id) REFERENCES mangas (_id) ON DELETE CASCADE
                             )""",
                         )
-                        db.execSQL("CREATE INDEX IF NOT EXISTS search_metadata_uploader_index ON search_metadata(uploader)")
-                        db.execSQL("CREATE INDEX IF NOT EXISTS search_metadata_indexed_extra_index ON search_metadata(indexed_extra)")
+                        db.execSQL(
+                            "CREATE INDEX IF NOT EXISTS search_metadata_uploader_index ON search_metadata(uploader)",
+                        )
+                        db.execSQL(
+                            "CREATE INDEX IF NOT EXISTS search_metadata_indexed_extra_index ON search_metadata(indexed_extra)",
+                        )
                         db.execSQL("CREATE INDEX IF NOT EXISTS search_tags_manga_id_index ON search_tags(manga_id)")
-                        db.execSQL("CREATE INDEX IF NOT EXISTS search_tags_namespace_name_index ON search_tags(namespace, name)")
+                        db.execSQL(
+                            "CREATE INDEX IF NOT EXISTS search_tags_namespace_name_index ON search_tags(namespace, name)",
+                        )
                         db.execSQL("CREATE INDEX IF NOT EXISTS search_titles_manga_id_index ON search_titles(manga_id)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS search_titles_title_index ON search_titles(title)")
                     }

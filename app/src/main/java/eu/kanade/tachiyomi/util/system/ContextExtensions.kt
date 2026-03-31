@@ -28,6 +28,7 @@ import tachiyomi.i18n.MR
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
+import java.io.IOException
 
 /**
  * Copies a string to clipboard
@@ -94,7 +95,20 @@ fun Context.createFileInCacheDir(name: String): File {
     if (file.exists()) {
         file.delete()
     }
-    file.createNewFile()
+    if (!file.createNewFile()) {
+        throw IOException("Failed to create file: ${file.absolutePath}")
+    }
+    return file
+}
+
+fun Context.createFileInFilesDir(name: String): File {
+    val file = File(filesDir, name)
+    if (file.exists()) {
+        file.delete()
+    }
+    if (!file.createNewFile()) {
+        throw IOException("Failed to create file: ${file.absolutePath}")
+    }
     return file
 }
 

@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupManga
 import eu.kanade.tachiyomi.data.backup.models.BackupTracking
 import tachiyomi.data.DatabaseHandler
 import tachiyomi.data.UpdateStrategyColumnAdapter
+import tachiyomi.data.history.HistoryMapper
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.chapter.model.Chapter
@@ -34,13 +35,8 @@ class MangaRestorer(
     fetchInterval: FetchInterval = Injekt.get(),
 ) {
 
-    private var now = ZonedDateTime.now()
-    private var currentFetchWindow = fetchInterval.getWindow(now)
-
-    init {
-        now = ZonedDateTime.now()
-        currentFetchWindow = fetchInterval.getWindow(now)
-    }
+    private val now = ZonedDateTime.now()
+    private val currentFetchWindow = fetchInterval.getWindow(now)
 
     suspend fun sortByNew(backupMangas: List<BackupManga>): List<BackupManga> {
         val urlsBySource = handler.awaitList { mangasQueries.getAllMangaSourceAndUrl() }
@@ -144,7 +140,7 @@ class MangaRestorer(
         )
     }
 
-    private suspend fun restoreChapters(manga: Manga, backupChapters: List<BackupChapter>) {
+    private suspend fun restoreChapters(manga: Manga, backupChapters: List<BackupChapter>): Map<String, Chapter> {
         val dbChaptersByUrl = getChaptersByMangaId.await(manga.id)
             .associateBy { it.url }
 
@@ -184,6 +180,9 @@ class MangaRestorer(
 
         insertNewChapters(newChapters)
         updateExistingChapters(existingChapters)
+
+        // Return fresh map after inserts so history restore can look up IDs by URL
+        return getChaptersByMangaId.await(manga.id).associateBy { it.url }
     }
 
     private fun Chapter.forComparison() =
@@ -277,9 +276,9 @@ class MangaRestorer(
         excludedScanlators: List<String>,
     ): Manga {
         restoreCategories(manga, categories, backupCategories)
-        restoreChapters(manga, chapters)
+        val dbChaptersByUrl = restoreChapters(manga, chapters)
         restoreTracking(manga, tracks)
-        restoreHistory(history)
+        restoreHistory(manga, history, dbChaptersByUrl)
         restoreExcludedScanlators(manga, excludedScanlators)
         updateManga.awaitUpdateFetchInterval(manga, now, currentFetchWindow)
         return manga
@@ -330,31 +329,39 @@ class MangaRestorer(
         }
     }
 
-    private suspend fun restoreHistory(backupHistory: List<BackupHistory>) {
+    private suspend fun restoreHistory(
+        manga: Manga,
+        backupHistory: List<BackupHistory>,
+        dbChaptersByUrl: Map<String, Chapter>,
+    ) {
+        if (backupHistory.isEmpty()) return
+
+        // Single bulk query instead of N+1 per-item queries
+        val dbHistoryByChapterId = handler.awaitList {
+            historyQueries.getHistoryByMangaId(manga.id, HistoryMapper::mapHistory)
+        }.associateBy { it.chapterId }
+
         val toUpdate = backupHistory.mapNotNull { history ->
-            val dbHistory = handler.awaitOneOrNull { historyQueries.getHistoryByChapterUrl(history.url) }
+            val dbChapter = dbChaptersByUrl[history.url] ?: return@mapNotNull null
             val item = history.getHistoryImpl()
+            val dbHistory = dbHistoryByChapterId[dbChapter.id]
 
             if (dbHistory == null) {
-                val chapter = handler.awaitOneOrNull { chaptersQueries.getChapterByUrl(history.url) }
-                return@mapNotNull if (chapter == null) {
-                    // Chapter doesn't exist; skip
-                    null
-                } else {
-                    // New history entry
-                    item.copy(chapterId = chapter._id)
-                }
+                // New history entry
+                item.copy(chapterId = dbChapter.id)
+            } else {
+                // Update history entry
+                item.copy(
+                    id = dbHistory.id,
+                    chapterId = dbHistory.chapterId,
+                    readAt = max(item.readAt?.time ?: 0L, dbHistory.readAt?.time ?: 0L)
+                        .takeIf { it > 0L }
+                        ?.let { Date(it) },
+                    // Compute the delta to add: the upsert SQL does time_read = time_read + :time_read,
+                    // so we pass only the difference (or 0 if backup duration is not greater)
+                    readDuration = max(item.readDuration, dbHistory.readDuration) - dbHistory.readDuration,
+                )
             }
-
-            // Update history entry
-            item.copy(
-                id = dbHistory._id,
-                chapterId = dbHistory.chapter_id,
-                readAt = max(item.readAt?.time ?: 0L, dbHistory.last_read?.time ?: 0L)
-                    .takeIf { it > 0L }
-                    ?.let { Date(it) },
-                readDuration = max(item.readDuration, dbHistory.time_read) - dbHistory.time_read,
-            )
         }
 
         if (toUpdate.isNotEmpty()) {

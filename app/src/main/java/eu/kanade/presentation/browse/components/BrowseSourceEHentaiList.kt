@@ -114,13 +114,13 @@ fun BrowseSourceEHentaiListItem(
                         androidx.compose.ui.graphics.ColorFilter.colorMatrix(
                             androidx.compose.ui.graphics.ColorMatrix().apply {
                                 setToSaturation(0f)
-                            }
+                            },
                         )
                     } else {
                         null
                     }
                 }
-                
+
                 MangaCover.Book(
                     data = manga,
                     modifier = Modifier
@@ -181,10 +181,16 @@ fun BrowseSourceEHentaiListItem(
                                 color = if (color != null) Color(color) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .background(
-                                        color = if (color != null) Color(color).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(4.dp)
+                                        color = if (color !=
+                                            null
+                                        ) {
+                                            Color(color).copy(alpha = 0.2f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        shape = RoundedCornerShape(4.dp),
                                     )
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
                             )
                         }
 
@@ -218,11 +224,11 @@ fun BrowseSourceEHentaiListItem(
                         }
                     }
                 }
-                
+
                 // Date posted if available
                 // val date = metadata?.datePosted ?: manga.dateAdded
                 // if (date > 0) {
-                     // Display date...
+                // Display date...
                 // }
             }
         }

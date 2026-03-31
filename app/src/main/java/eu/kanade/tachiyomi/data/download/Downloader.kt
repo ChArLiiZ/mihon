@@ -250,7 +250,9 @@ class Downloader(
                     lastError = e
                     if (attempt < CHAPTER_RETRY_COUNT) {
                         val delayMs = CHAPTER_RETRY_BASE_DELAY_MS * (1L shl (attempt - 1))
-                        logcat(LogPriority.WARN) { "Chapter download failed (attempt $attempt/$CHAPTER_RETRY_COUNT), retrying in ${delayMs}ms: ${e.message}" }
+                        logcat(LogPriority.WARN) {
+                            "Chapter download failed (attempt $attempt/$CHAPTER_RETRY_COUNT), retrying in ${delayMs}ms: ${e.message}"
+                        }
                         kotlinx.coroutines.delay(delayMs)
                         // Reset pages for retry
                         download.pages?.forEach { it.status = Page.State.Queue }

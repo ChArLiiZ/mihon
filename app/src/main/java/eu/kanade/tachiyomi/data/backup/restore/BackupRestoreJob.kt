@@ -43,15 +43,13 @@ class BackupRestoreJob(private val context: Context, workerParams: WorkerParamet
         return try {
             BackupRestorer(context, notifier, isSync).restore(uri, options)
             Result.success()
+        } catch (e: CancellationException) {
+            notifier.showRestoreError(context.stringResource(MR.strings.restoring_backup_canceled))
+            throw e
         } catch (e: Exception) {
-            if (e is CancellationException) {
-                notifier.showRestoreError(context.stringResource(MR.strings.restoring_backup_canceled))
-                Result.success()
-            } else {
-                logcat(LogPriority.ERROR, e)
-                notifier.showRestoreError(e.message)
-                Result.failure()
-            }
+            logcat(LogPriority.ERROR, e)
+            notifier.showRestoreError(e.message)
+            Result.failure()
         } finally {
             context.cancelNotification(Notifications.ID_RESTORE_PROGRESS)
         }

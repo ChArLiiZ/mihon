@@ -10,8 +10,8 @@ import exh.source.TSUMINO_SOURCE_ID
 import exh.source.lanraragiSourceIds
 import exh.source.mangaDexSourceIds
 import exh.source.nHentaiSourceIds
-import java.util.Locale
 import tachiyomi.i18n.MR
+import java.util.Locale
 
 object SourceTagsUtil {
     fun getWrappedTag(
@@ -103,7 +103,6 @@ object SourceTagsUtil {
         COSPLAY_COLOR(0xFF9c27b0.toInt()),
         ASIAN_PORN_COLOR(0xFF9575cd.toInt()),
         MISC_COLOR(0xFFf06292.toInt()),
-        ;
     }
 
     fun getLocaleSourceUtil(language: String?) = when (language) {

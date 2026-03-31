@@ -64,7 +64,15 @@ class GalleryAdder(
         throttleFunc: suspend () -> Unit = {},
         retry: Int = 1,
     ): GalleryAddEvent {
-        Log.d(TAG, context.stringResource(SYMR.strings.gallery_adder_importing_gallery, url, fav.toString(), forceSource?.toString().orEmpty()))
+        Log.d(
+            TAG,
+            context.stringResource(
+                SYMR.strings.gallery_adder_importing_gallery,
+                url,
+                fav.toString(),
+                forceSource?.toString().orEmpty(),
+            ),
+        )
         try {
             val uri = url.toUri()
 
@@ -168,7 +176,10 @@ class GalleryAdder(
                 }
             } catch (e: Exception) {
                 Log.w(TAG, context.stringResource(SYMR.strings.gallery_adder_chapter_fetch_error, manga.title), e)
-                return GalleryAddEvent.Fail.Error(url, context.stringResource(SYMR.strings.gallery_adder_chapter_fetch_error, url))
+                return GalleryAddEvent.Fail.Error(
+                    url,
+                    context.stringResource(SYMR.strings.gallery_adder_chapter_fetch_error, url),
+                )
             }
 
             return if (cleanedChapterUrl != null) {
@@ -176,7 +187,10 @@ class GalleryAdder(
                 if (chapter != null) {
                     GalleryAddEvent.Success(url, manga, context, chapter)
                 } else {
-                    GalleryAddEvent.Fail.Error(url, context.stringResource(SYMR.strings.gallery_adder_could_not_identify_chapter, url))
+                    GalleryAddEvent.Fail.Error(
+                        url,
+                        context.stringResource(SYMR.strings.gallery_adder_could_not_identify_chapter, url),
+                    )
                 }
             } else {
                 GalleryAddEvent.Success(url, manga, context)
@@ -240,7 +254,10 @@ sealed class GalleryAddEvent {
 
     sealed class Fail : GalleryAddEvent() {
         class UnknownType(override val galleryUrl: String, val context: Context) : Fail() {
-            override val logMessage = context.stringResource(SYMR.strings.gallery_adder_could_not_add_gallery, galleryUrl)
+            override val logMessage = context.stringResource(
+                SYMR.strings.gallery_adder_could_not_add_gallery,
+                galleryUrl,
+            )
         }
 
         open class Error(
@@ -252,7 +269,10 @@ sealed class GalleryAddEvent {
             Error(galleryUrl, context.stringResource(SYMR.strings.gallery_adder_could_not_add_gallery, galleryUrl))
 
         class UnknownSource(override val galleryUrl: String, val context: Context) : Fail() {
-            override val logMessage = context.stringResource(SYMR.strings.gallery_adder_could_not_add_gallery, galleryUrl)
+            override val logMessage = context.stringResource(
+                SYMR.strings.gallery_adder_could_not_add_gallery,
+                galleryUrl,
+            )
         }
     }
 }

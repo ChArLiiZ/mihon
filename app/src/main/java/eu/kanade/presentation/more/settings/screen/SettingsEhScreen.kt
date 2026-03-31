@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.tachiyomi.ui.webview.WebViewActivity
 import eu.kanade.tachiyomi.util.system.toast
@@ -46,7 +45,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.launch
 import tachiyomi.core.common.util.lang.withIOContext
-
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -60,8 +58,6 @@ object SettingsEhScreen : SearchableSettings {
     @ReadOnlyComposable
     @Composable
     override fun getTitleRes() = SYMR.strings.pref_category_eh
-
-
 
     @Composable
     fun Reconfigure(
@@ -529,21 +525,63 @@ object SettingsEhScreen : SearchableSettings {
                         Text(text = stringResource(SYMR.strings.translated), modifier = Modifier.padding(4.dp))
                         Text(text = stringResource(SYMR.strings.rewrite), modifier = Modifier.padding(4.dp))
                     }
-                    LanguageDialogRow(language = Locale.JAPANESE.getDisplayLanguage(Locale.getDefault()), row = state.japanese)
-                    LanguageDialogRow(language = Locale.ENGLISH.getDisplayLanguage(Locale.getDefault()), row = state.english)
-                    LanguageDialogRow(language = Locale.CHINESE.getDisplayLanguage(Locale.getDefault()), row = state.chinese)
-                    LanguageDialogRow(language = Locale("nl").getDisplayLanguage(Locale.getDefault()), row = state.dutch)
-                    LanguageDialogRow(language = Locale.FRENCH.getDisplayLanguage(Locale.getDefault()), row = state.french)
-                    LanguageDialogRow(language = Locale.GERMAN.getDisplayLanguage(Locale.getDefault()), row = state.german)
-                    LanguageDialogRow(language = Locale("hu").getDisplayLanguage(Locale.getDefault()), row = state.hungarian)
-                    LanguageDialogRow(language = Locale.ITALIAN.getDisplayLanguage(Locale.getDefault()), row = state.italian)
-                    LanguageDialogRow(language = Locale.KOREAN.getDisplayLanguage(Locale.getDefault()), row = state.korean)
-                    LanguageDialogRow(language = Locale("pl").getDisplayLanguage(Locale.getDefault()), row = state.polish)
-                    LanguageDialogRow(language = Locale("pt").getDisplayLanguage(Locale.getDefault()), row = state.portuguese)
-                    LanguageDialogRow(language = Locale("ru").getDisplayLanguage(Locale.getDefault()), row = state.russian)
-                    LanguageDialogRow(language = Locale("es").getDisplayLanguage(Locale.getDefault()), row = state.spanish)
+                    LanguageDialogRow(
+                        language = Locale.JAPANESE.getDisplayLanguage(Locale.getDefault()),
+                        row = state.japanese,
+                    )
+                    LanguageDialogRow(
+                        language = Locale.ENGLISH.getDisplayLanguage(Locale.getDefault()),
+                        row = state.english,
+                    )
+                    LanguageDialogRow(
+                        language = Locale.CHINESE.getDisplayLanguage(Locale.getDefault()),
+                        row = state.chinese,
+                    )
+                    LanguageDialogRow(
+                        language = Locale("nl").getDisplayLanguage(Locale.getDefault()),
+                        row = state.dutch,
+                    )
+                    LanguageDialogRow(
+                        language = Locale.FRENCH.getDisplayLanguage(Locale.getDefault()),
+                        row = state.french,
+                    )
+                    LanguageDialogRow(
+                        language = Locale.GERMAN.getDisplayLanguage(Locale.getDefault()),
+                        row = state.german,
+                    )
+                    LanguageDialogRow(
+                        language = Locale("hu").getDisplayLanguage(Locale.getDefault()),
+                        row = state.hungarian,
+                    )
+                    LanguageDialogRow(
+                        language = Locale.ITALIAN.getDisplayLanguage(Locale.getDefault()),
+                        row = state.italian,
+                    )
+                    LanguageDialogRow(
+                        language = Locale.KOREAN.getDisplayLanguage(Locale.getDefault()),
+                        row = state.korean,
+                    )
+                    LanguageDialogRow(
+                        language = Locale("pl").getDisplayLanguage(Locale.getDefault()),
+                        row = state.polish,
+                    )
+                    LanguageDialogRow(
+                        language = Locale("pt").getDisplayLanguage(Locale.getDefault()),
+                        row = state.portuguese,
+                    )
+                    LanguageDialogRow(
+                        language = Locale("ru").getDisplayLanguage(Locale.getDefault()),
+                        row = state.russian,
+                    )
+                    LanguageDialogRow(
+                        language = Locale("es").getDisplayLanguage(Locale.getDefault()),
+                        row = state.spanish,
+                    )
                     LanguageDialogRow(language = Locale("th").getDisplayLanguage(Locale.getDefault()), row = state.thai)
-                    LanguageDialogRow(language = Locale("vi").getDisplayLanguage(Locale.getDefault()), row = state.vietnamese)
+                    LanguageDialogRow(
+                        language = Locale("vi").getDisplayLanguage(Locale.getDefault()),
+                        row = state.vietnamese,
+                    )
                     LanguageDialogRow(language = stringResource(MR.strings.not_applicable), row = state.notAvailable)
                     LanguageDialogRow(language = stringResource(MR.strings.other_source), row = state.other)
                 }
@@ -809,8 +847,6 @@ object SettingsEhScreen : SearchableSettings {
         )
     }
 
-
-
     @Composable
     fun lenientSync(exhPreferences: ExhPreferences): Preference.PreferenceItem.SwitchPreference {
         return Preference.PreferenceItem.SwitchPreference(
@@ -819,6 +855,4 @@ object SettingsEhScreen : SearchableSettings {
             subtitle = stringResource(SYMR.strings.ignore_sync_errors_summary),
         )
     }
-
-
 }
